@@ -30,7 +30,7 @@
 *~
 
 *.swp
-freebsd/export_syms
-freebsd/machine
-freebsd/x86
+os/freebsd/export_syms
+os/freebsd/machine
+os/freebsd/x86
 
