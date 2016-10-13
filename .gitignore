@@ -28,3 +28,9 @@
 *.x86_64
 *.hex
 *~
+
+*.swp
+freebsd/export_syms
+freebsd/machine
+freebsd/x86
+

@@ -1,0 +1,12 @@
+Index: sys/dev/usb/usbdevs
+===================================================================
+--- sys/dev/usb/usbdevs	(revision 305028)
++++ sys/dev/usb/usbdevs	(working copy)
+@@ -3027,6 +3027,7 @@
+ 
+ /* MediaTek, Inc. */
+ product MEDIATEK MTK3329	0x3329	MTK II GPS Receiver
++product MEDIATEK RT7610U    	0x7610  MediaTek Wi-Fi
+ 
+ /* Meizu Electronics */
+ product MEIZU M6_SL		0x0140	MiniPlayer M6 (SL)
