@@ -115,143 +115,145 @@ static device_probe_t	umt_match;
 static device_attach_t	umt_attach;
 static device_detach_t	umt_detach;
 
-#if 0
-static usb_callback_t	run_bulk_rx_callback;
-static usb_callback_t	run_bulk_tx_callback0;
-static usb_callback_t	run_bulk_tx_callback1;
-static usb_callback_t	run_bulk_tx_callback2;
-static usb_callback_t	run_bulk_tx_callback3;
-static usb_callback_t	run_bulk_tx_callback4;
-static usb_callback_t	run_bulk_tx_callback5;
+//static usb_callback_t	umt_bulk_rx_callback;
+static usb_callback_t	umt_bulk_tx_callback0;
+static usb_callback_t	umt_bulk_tx_callback1;
+static usb_callback_t	umt_bulk_tx_callback2;
+static usb_callback_t	umt_bulk_tx_callback3;
+static usb_callback_t	umt_bulk_tx_callback4;
+static usb_callback_t	umt_bulk_tx_callback5;
 
-static void	run_autoinst(void *, struct usb_device *,
-		    struct usb_attach_arg *);
-static int	run_driver_loaded(struct module *, int, void *);
-static void	run_bulk_tx_callbackN(struct usb_xfer *xfer,
+static void	umt_bulk_tx_callbackN(struct usb_xfer *xfer,
 		    usb_error_t error, u_int index);
-static struct ieee80211vap *run_vap_create(struct ieee80211com *,
+
+static void	umt_autoinst(void *, struct usb_device *,
+		    struct usb_attach_arg *);
+static int	umt_driver_loaded(struct module *, int, void *);
+static struct ieee80211vap *umt_vap_create(struct ieee80211com *,
 		    const char [IFNAMSIZ], int, enum ieee80211_opmode, int,
 		    const uint8_t [IEEE80211_ADDR_LEN],
 		    const uint8_t [IEEE80211_ADDR_LEN]);
-static void	run_vap_delete(struct ieee80211vap *);
-static void	run_cmdq_cb(void *, int);
-static void	run_setup_tx_list(struct run_softc *,
-		    struct run_endpoint_queue *);
-static void	run_unsetup_tx_list(struct run_softc *,
-		    struct run_endpoint_queue *);
-static int	run_load_microcode(struct run_softc *);
-static int	run_reset(struct run_softc *);
-static usb_error_t run_do_request(struct run_softc *,
+static void	umt_vap_delete(struct ieee80211vap *);
+static void	umt_cmdq_cb(void *, int);
+static void	umt_setup_tx_list(struct umt_softc *,
+		    struct umt_endpoint_queue *);
+static void	umt_unsetup_tx_list(struct umt_softc *,
+		    struct umt_endpoint_queue *);
+static int	umt_load_microcode(struct umt_softc *);
+static int	umt_reset(struct umt_softc *);
+static usb_error_t umt_do_request(struct umt_softc *,
 		    struct usb_device_request *, void *);
-static int	run_read(struct run_softc *, uint16_t, uint32_t *);
-static int	run_read_region_1(struct run_softc *, uint16_t, uint8_t *, int);
-static int	run_write_2(struct run_softc *, uint16_t, uint16_t);
-static int	run_write(struct run_softc *, uint16_t, uint32_t);
-static int	run_write_region_1(struct run_softc *, uint16_t,
+static int	umt_read(struct umt_softc *, uint16_t, uint32_t *);
+static int	umt_read_region_1(struct umt_softc *, uint16_t, uint8_t *, int);
+static int	umt_write_2(struct umt_softc *, uint16_t, uint16_t);
+static int	umt_write(struct umt_softc *, uint16_t, uint32_t);
+static int	umt_write_region_1(struct umt_softc *, uint16_t,
 		    const uint8_t *, int);
-static int	run_set_region_4(struct run_softc *, uint16_t, uint32_t, int);
-static int	run_efuse_read(struct run_softc *, uint16_t, uint16_t *, int);
-static int	run_efuse_read_2(struct run_softc *, uint16_t, uint16_t *);
-static int	run_eeprom_read_2(struct run_softc *, uint16_t, uint16_t *);
-static int	run_rt2870_rf_write(struct run_softc *, uint32_t);
-static int	run_rt3070_rf_read(struct run_softc *, uint8_t, uint8_t *);
-static int	run_rt3070_rf_write(struct run_softc *, uint8_t, uint8_t);
-static int	run_bbp_read(struct run_softc *, uint8_t, uint8_t *);
-static int	run_bbp_write(struct run_softc *, uint8_t, uint8_t);
-static int	run_mcu_cmd(struct run_softc *, uint8_t, uint16_t);
-static const char *run_get_rf(uint16_t);
-static void	run_rt3593_get_txpower(struct run_softc *);
-static void	run_get_txpower(struct run_softc *);
-static int	run_read_eeprom(struct run_softc *);
-static struct ieee80211_node *run_node_alloc(struct ieee80211vap *,
+static int	umt_set_region_4(struct umt_softc *, uint16_t, uint32_t, int);
+static int	umt_efuse_read(struct umt_softc *, uint16_t, uint16_t *, int);
+static int	umt_efuse_read_2(struct umt_softc *, uint16_t, uint16_t *);
+static int	umt_eeprom_read_2(struct umt_softc *, uint16_t, uint16_t *);
+static int	umt_rt2870_rf_write(struct umt_softc *, uint32_t);
+static int	umt_rt3070_rf_read(struct umt_softc *, uint8_t, uint8_t *);
+static int	umt_rt3070_rf_write(struct umt_softc *, uint8_t, uint8_t);
+static int	umt_bbp_read(struct umt_softc *, uint8_t, uint8_t *);
+static int	umt_bbp_write(struct umt_softc *, uint8_t, uint8_t);
+static int	umt_mcu_cmd(struct umt_softc *, uint8_t, uint16_t);
+static const char *umt_get_rf(uint16_t);
+static void	umt_rt3593_get_txpower(struct umt_softc *);
+static void	umt_get_txpower(struct umt_softc *);
+static int	umt_read_eeprom(struct umt_softc *);
+static struct ieee80211_node *umt_node_alloc(struct ieee80211vap *,
 			    const uint8_t mac[IEEE80211_ADDR_LEN]);
-static int	run_media_change(struct ifnet *);
-static int	run_newstate(struct ieee80211vap *, enum ieee80211_state, int);
-static int	run_wme_update(struct ieee80211com *);
-static void	run_key_set_cb(void *);
-static int	run_key_set(struct ieee80211vap *, struct ieee80211_key *);
-static void	run_key_delete_cb(void *);
-static int	run_key_delete(struct ieee80211vap *, struct ieee80211_key *);
-static void	run_ratectl_to(void *);
-static void	run_ratectl_cb(void *, int);
-static void	run_drain_fifo(void *);
-static void	run_iter_func(void *, struct ieee80211_node *);
-static void	run_newassoc_cb(void *);
-static void	run_newassoc(struct ieee80211_node *, int);
-static void	run_recv_mgmt(struct ieee80211_node *, struct mbuf *, int,
+static int	umt_media_change(struct ifnet *);
+static int	umt_newstate(struct ieee80211vap *, enum ieee80211_state, int);
+static int	umt_wme_update(struct ieee80211com *);
+static void	umt_key_set_cb(void *);
+static int	umt_key_set(struct ieee80211vap *, struct ieee80211_key *);
+static void	umt_key_delete_cb(void *);
+static int	umt_key_delete(struct ieee80211vap *, struct ieee80211_key *);
+static void	umt_ratectl_to(void *);
+static void	umt_ratectl_cb(void *, int);
+static void	umt_drain_fifo(void *);
+static void	umt_iter_func(void *, struct ieee80211_node *);
+static void	umt_newassoc_cb(void *);
+static void	umt_newassoc(struct ieee80211_node *, int);
+static void	umt_recv_mgmt(struct ieee80211_node *, struct mbuf *, int,
 		    const struct ieee80211_rx_stats *, int, int);
-static void	run_rx_frame(struct run_softc *, struct mbuf *, uint32_t);
-static void	run_tx_free(struct run_endpoint_queue *pq,
-		    struct run_tx_data *, int);
-static void	run_set_tx_desc(struct run_softc *, struct run_tx_data *);
-static int	run_tx(struct run_softc *, struct mbuf *,
+static void	umt_rx_frame(struct umt_softc *, struct mbuf *, uint32_t);
+static void	umt_tx_free(struct umt_endpoint_queue *pq,
+		    struct umt_tx_data *, int);
+static void	umt_set_tx_desc(struct umt_softc *, struct umt_tx_data *);
+static int	umt_tx(struct umt_softc *, struct mbuf *,
 		    struct ieee80211_node *);
-static int	run_tx_mgt(struct run_softc *, struct mbuf *,
+static int	umt_tx_mgt(struct umt_softc *, struct mbuf *,
 		    struct ieee80211_node *);
-static int	run_sendprot(struct run_softc *, const struct mbuf *,
+static int	umt_sendprot(struct umt_softc *, const struct mbuf *,
 		    struct ieee80211_node *, int, int);
-static int	run_tx_param(struct run_softc *, struct mbuf *,
+static int	umt_tx_param(struct umt_softc *, struct mbuf *,
 		    struct ieee80211_node *,
 		    const struct ieee80211_bpf_params *);
-static int	run_raw_xmit(struct ieee80211_node *, struct mbuf *,
+static int	umt_raw_xmit(struct ieee80211_node *, struct mbuf *,
 		    const struct ieee80211_bpf_params *);
-static int	run_transmit(struct ieee80211com *, struct mbuf *);
-static void	run_start(struct run_softc *);
-static void	run_parent(struct ieee80211com *);
-static void	run_iq_calib(struct run_softc *, u_int);
-static void	run_set_agc(struct run_softc *, uint8_t);
-static void	run_select_chan_group(struct run_softc *, int);
-static void	run_set_rx_antenna(struct run_softc *, int);
-static void	run_rt2870_set_chan(struct run_softc *, u_int);
-static void	run_rt3070_set_chan(struct run_softc *, u_int);
-static void	run_rt3572_set_chan(struct run_softc *, u_int);
-static void	run_rt3593_set_chan(struct run_softc *, u_int);
-static void	run_rt5390_set_chan(struct run_softc *, u_int);
-static void	run_rt5592_set_chan(struct run_softc *, u_int);
-static int	run_set_chan(struct run_softc *, struct ieee80211_channel *);
-static void	run_set_channel(struct ieee80211com *);
-static void	run_getradiocaps(struct ieee80211com *, int, int *,
+static int	umt_transmit(struct ieee80211com *, struct mbuf *);
+static void	umt_start(struct umt_softc *);
+static void	umt_parent(struct ieee80211com *);
+static void	umt_iq_calib(struct umt_softc *, u_int);
+static void	umt_set_agc(struct umt_softc *, uint8_t);
+static void	umt_select_chan_group(struct umt_softc *, int);
+static void	umt_set_rx_antenna(struct umt_softc *, int);
+static void	umt_rt2870_set_chan(struct umt_softc *, u_int);
+static void	umt_rt3070_set_chan(struct umt_softc *, u_int);
+static void	umt_rt3572_set_chan(struct umt_softc *, u_int);
+static void	umt_rt3593_set_chan(struct umt_softc *, u_int);
+static void	umt_rt5390_set_chan(struct umt_softc *, u_int);
+static void	umt_rt5592_set_chan(struct umt_softc *, u_int);
+static int	umt_set_chan(struct umt_softc *, struct ieee80211_channel *);
+static void	umt_set_channel(struct ieee80211com *);
+static void	umt_getradiocaps(struct ieee80211com *, int, int *,
 		    struct ieee80211_channel[]);
-static void	run_scan_start(struct ieee80211com *);
-static void	run_scan_end(struct ieee80211com *);
-static void	run_update_beacon(struct ieee80211vap *, int);
-static void	run_update_beacon_cb(void *);
-static void	run_updateprot(struct ieee80211com *);
-static void	run_updateprot_cb(void *);
-static void	run_usb_timeout_cb(void *);
-static void	run_reset_livelock(struct run_softc *);
-static void	run_enable_tsf_sync(struct run_softc *);
-static void	run_enable_tsf(struct run_softc *);
-static void	run_get_tsf(struct run_softc *, uint64_t *);
-static void	run_enable_mrr(struct run_softc *);
-static void	run_set_txpreamble(struct run_softc *);
-static void	run_set_basicrates(struct run_softc *);
-static void	run_set_leds(struct run_softc *, uint16_t);
-static void	run_set_bssid(struct run_softc *, const uint8_t *);
-static void	run_set_macaddr(struct run_softc *, const uint8_t *);
-static void	run_updateslot(struct ieee80211com *);
-static void	run_updateslot_cb(void *);
-static void	run_update_mcast(struct ieee80211com *);
-static int8_t	run_rssi2dbm(struct run_softc *, uint8_t, uint8_t);
-static void	run_update_promisc_locked(struct run_softc *);
-static void	run_update_promisc(struct ieee80211com *);
-static void	run_rt5390_bbp_init(struct run_softc *);
-static int	run_bbp_init(struct run_softc *);
-static int	run_rt3070_rf_init(struct run_softc *);
-static void	run_rt3593_rf_init(struct run_softc *);
-static void	run_rt5390_rf_init(struct run_softc *);
-static int	run_rt3070_filter_calib(struct run_softc *, uint8_t, uint8_t,
+static void	umt_scan_start(struct ieee80211com *);
+static void	umt_scan_end(struct ieee80211com *);
+static void	umt_update_beacon(struct ieee80211vap *, int);
+static void	umt_update_beacon_cb(void *);
+static void	umt_updateprot(struct ieee80211com *);
+static void	umt_updateprot_cb(void *);
+static void	umt_usb_timeout_cb(void *);
+static void	umt_reset_livelock(struct umt_softc *);
+static void	umt_enable_tsf_sync(struct umt_softc *);
+static void	umt_enable_tsf(struct umt_softc *);
+static void	umt_get_tsf(struct umt_softc *, uint64_t *);
+static void	umt_enable_mrr(struct umt_softc *);
+static void	umt_set_txpreamble(struct umt_softc *);
+static void	umt_set_basicrates(struct umt_softc *);
+static void	umt_set_leds(struct umt_softc *, uint16_t);
+static void	umt_set_bssid(struct umt_softc *, const uint8_t *);
+static void	umt_set_macaddr(struct umt_softc *, const uint8_t *);
+static void	umt_updateslot(struct ieee80211com *);
+static void	umt_updateslot_cb(void *);
+static void	umt_update_mcast(struct ieee80211com *);
+static int8_t	umt_rssi2dbm(struct umt_softc *, uint8_t, uint8_t);
+static void	umt_update_promisc_locked(struct umt_softc *);
+static void	umt_update_promisc(struct ieee80211com *);
+static void	umt_rt5390_bbp_init(struct umt_softc *);
+static int	umt_bbp_init(struct umt_softc *);
+static int	umt_rt3070_rf_init(struct umt_softc *);
+static void	umt_rt3593_rf_init(struct umt_softc *);
+static void	umt_rt5390_rf_init(struct umt_softc *);
+static int	umt_rt3070_filter_calib(struct umt_softc *, uint8_t, uint8_t,
 		    uint8_t *);
-static void	run_rt3070_rf_setup(struct run_softc *);
-static void	run_rt3593_rf_setup(struct run_softc *);
-static void	run_rt5390_rf_setup(struct run_softc *);
-static int	run_txrx_enable(struct run_softc *);
-static void	run_adjust_freq_offset(struct run_softc *);
-static void	run_init_locked(struct run_softc *);
-static void	run_stop(void *);
-static void	run_delay(struct run_softc *, u_int);
+static void	umt_rt3070_rf_setup(struct umt_softc *);
+static void	umt_rt3593_rf_setup(struct umt_softc *);
+static void	umt_rt5390_rf_setup(struct umt_softc *);
+static int	umt_txrx_enable(struct umt_softc *);
+static void	umt_adjust_freq_offset(struct umt_softc *);
+static void	umt_init_locked(struct umt_softc *);
+static void	umt_stop(void *);
+static void	umt_delay(struct umt_softc *, u_int);
 
-static eventhandler_tag run_etag;
+//static eventhandler_tag umt_etag;
+
+#if 0
 
 static const struct rt2860_rate {
 	uint8_t		rate;
@@ -359,79 +361,81 @@ static const struct {
 } rt5592_chan_5ghz[] = {
 	RT5592_CHAN_5GHZ
 };
+#endif
 
-static const struct usb_config run_config[RUN_N_XFER] = {
-    [RUN_BULK_TX_BE] = {
+static const struct usb_config umt_config[UMT_N_XFER] = {
+    [UMT_BULK_TX_BE] = {
 	.type = UE_BULK,
 	.endpoint = UE_ADDR_ANY,
 	.ep_index = 0,
 	.direction = UE_DIR_OUT,
-	.bufsize = RUN_MAX_TXSZ,
+	.bufsize = UMT_MAX_TXSZ,
 	.flags = {.pipe_bof = 1,.force_short_xfer = 1,},
-	.callback = run_bulk_tx_callback0,
+	.callback = umt_bulk_tx_callback0,
 	.timeout = 5000,	/* ms */
     },
-    [RUN_BULK_TX_BK] = {
+    [UMT_BULK_TX_BK] = {
 	.type = UE_BULK,
 	.endpoint = UE_ADDR_ANY,
 	.direction = UE_DIR_OUT,
 	.ep_index = 1,
-	.bufsize = RUN_MAX_TXSZ,
+	.bufsize = UMT_MAX_TXSZ,
 	.flags = {.pipe_bof = 1,.force_short_xfer = 1,},
-	.callback = run_bulk_tx_callback1,
+	.callback = umt_bulk_tx_callback1,
 	.timeout = 5000,	/* ms */
     },
-    [RUN_BULK_TX_VI] = {
+    [UMT_BULK_TX_VI] = {
 	.type = UE_BULK,
 	.endpoint = UE_ADDR_ANY,
 	.direction = UE_DIR_OUT,
 	.ep_index = 2,
-	.bufsize = RUN_MAX_TXSZ,
+	.bufsize = UMT_MAX_TXSZ,
 	.flags = {.pipe_bof = 1,.force_short_xfer = 1,},
-	.callback = run_bulk_tx_callback2,
+	.callback = umt_bulk_tx_callback2,
 	.timeout = 5000,	/* ms */
     },
-    [RUN_BULK_TX_VO] = {
+    [UMT_BULK_TX_VO] = {
 	.type = UE_BULK,
 	.endpoint = UE_ADDR_ANY,
 	.direction = UE_DIR_OUT,
 	.ep_index = 3,
-	.bufsize = RUN_MAX_TXSZ,
+	.bufsize = UMT_MAX_TXSZ,
 	.flags = {.pipe_bof = 1,.force_short_xfer = 1,},
-	.callback = run_bulk_tx_callback3,
+	.callback = umt_bulk_tx_callback3,
 	.timeout = 5000,	/* ms */
     },
-    [RUN_BULK_TX_HCCA] = {
+    [UMT_BULK_TX_HCCA] = {
 	.type = UE_BULK,
 	.endpoint = UE_ADDR_ANY,
 	.direction = UE_DIR_OUT,
 	.ep_index = 4,
-	.bufsize = RUN_MAX_TXSZ,
+	.bufsize = UMT_MAX_TXSZ,
 	.flags = {.pipe_bof = 1,.force_short_xfer = 1,.no_pipe_ok = 1,},
-	.callback = run_bulk_tx_callback4,
+	.callback = umt_bulk_tx_callback4,
 	.timeout = 5000,	/* ms */
     },
-    [RUN_BULK_TX_PRIO] = {
+    [UMT_BULK_TX_PRIO] = {
 	.type = UE_BULK,
 	.endpoint = UE_ADDR_ANY,
 	.direction = UE_DIR_OUT,
 	.ep_index = 5,
-	.bufsize = RUN_MAX_TXSZ,
+	.bufsize = UMT_MAX_TXSZ,
 	.flags = {.pipe_bof = 1,.force_short_xfer = 1,.no_pipe_ok = 1,},
-	.callback = run_bulk_tx_callback5,
+	.callback = umt_bulk_tx_callback5,
 	.timeout = 5000,	/* ms */
     },
-    [RUN_BULK_RX] = {
+    [UMT_BULK_RX] = {
 	.type = UE_BULK,
 	.endpoint = UE_ADDR_ANY,
 	.direction = UE_DIR_IN,
-	.bufsize = RUN_MAX_RXSZ,
+	.bufsize = UMT_MAX_RXSZ,
 	.flags = {.pipe_bof = 1,.short_xfer_ok = 1,},
-	.callback = run_bulk_rx_callback,
+	//.callback = umt_bulk_rx_callback,
+	.callback = NULL,
     }
 };
 
-
+#if 0
 static void
 run_autoinst(void *arg, struct usb_device *udev,
     struct usb_attach_arg *uaa)
@@ -504,27 +508,29 @@ umt_attach(device_t self)
 	//uint32_t ver;
 	uint8_t iface_index;
 	//int ntries, error;
+	int error;
 
 	device_set_usb_desc(self);
 	sc->sc_udev = uaa->device;
 	sc->sc_dev = self;
 	if (USB_GET_DRIVER_INFO(uaa) != UMT_EJECT)
-		sc->sc_flags |= RUN_FLAG_FWLOAD_NEEDED;
+		sc->sc_flags |= UMT_FLAG_FWLOAD_NEEDED;
 
 	mtx_init(&sc->sc_mtx, device_get_nameunit(sc->sc_dev),
 	    MTX_NETWORK_LOCK, MTX_DEF);
 	mbufq_init(&sc->sc_snd, ifqmaxlen);
 
 	iface_index = RT2860_IFACE_INDEX;
-#if 0
+
 	error = usbd_transfer_setup(uaa->device, &iface_index,
-	    sc->sc_xfer, run_config, RUN_N_XFER, sc, &sc->sc_mtx);
+	    sc->sc_xfer, umt_config, UMT_N_XFER, sc, &sc->sc_mtx);
 	
 	if (error) {
 		device_printf(self, "could not allocate USB transfers, "
 		    "err=%s\n", usbd_errstr(error));
 		goto detach;
 	}
+#if 0
 
 	RUN_LOCK(sc);
 	/* wait for the chip to settle */
@@ -618,13 +624,13 @@ umt_attach(device_t self)
 		ieee80211_announce(ic);
 #endif
 	return (0);
-}
-#if 0
+
 detach:
-	run_detach(self);
+	umt_detach(self);
 	return (ENXIO);
 }
 
+#if 0
 static void
 run_drain_mbufq(struct run_softc *sc)
 {
@@ -650,10 +656,11 @@ umt_detach(device_t self)
 	UMT_LOCK(sc);
 	sc->sc_detached = 1;
 	UMT_UNLOCK(sc);
-#if 0
-	/* stop all USB transfers */
-	usbd_transfer_unsetup(sc->sc_xfer, RUN_N_XFER);
 
+	/* stop all USB transfers */
+	usbd_transfer_unsetup(sc->sc_xfer, UMT_N_XFER);
+
+#if 0
 	RUN_LOCK(sc);
 	sc->ratectl_run = RUN_RATECTL_OFF;
 	sc->cmdq_run = sc->cmdq_key_set = RUN_CMDQ_ABORT;
@@ -2675,6 +2682,7 @@ run_rx_frame(struct run_softc *sc, struct mbuf *m, uint32_t dmalen)
 static void
 run_bulk_rx_callback(struct usb_xfer *xfer, usb_error_t error)
 {
+#if 0
 	struct run_softc *sc = usbd_xfer_softc(xfer);
 	struct ieee80211com *ic = &sc->sc_ic;
 	struct mbuf *m = NULL;
@@ -2724,7 +2732,7 @@ tr_setup:
 			 * there is only one cluster.
 			 */
 			usbd_xfer_set_frame_data(xfer, 0, 
-			    mtod(sc->rx_m, caddr_t), RUN_MAX_RXSZ);
+			    mtod(sc->rx_m, caddr_t), UMT_MAX_RXSZ);
 			usbd_xfer_set_frames(xfer, 1);
 		}
 		usbd_transfer_submit(xfer);
@@ -2802,6 +2810,7 @@ tr_setup:
 	m_freem(m);
 
 	RUN_LOCK(sc);
+#endif
 }
 
 static void
@@ -2818,15 +2827,17 @@ run_tx_free(struct run_endpoint_queue *pq,
 	pq->tx_nfree++;
 }
 
+#endif
 static void
-run_bulk_tx_callbackN(struct usb_xfer *xfer, usb_error_t error, u_int index)
+umt_bulk_tx_callbackN(struct usb_xfer *xfer, usb_error_t error, u_int index)
 {
-	struct run_softc *sc = usbd_xfer_softc(xfer);
+#if 0
+	struct umt_softc *sc = usbd_xfer_softc(xfer);
 	struct ieee80211com *ic = &sc->sc_ic;
-	struct run_tx_data *data;
+	struct umt_tx_data *data;
 	struct ieee80211vap *vap = NULL;
 	struct usb_page_cache *pc;
-	struct run_endpoint_queue *pq = &sc->sc_epq[index];
+	struct umt_endpoint_queue *pq = &sc->sc_epq[index];
 	struct mbuf *m;
 	usb_frlength_t size;
 	int actlen;
@@ -2840,7 +2851,7 @@ run_bulk_tx_callbackN(struct usb_xfer *xfer, usb_error_t error, u_int index)
 		    "bytes @ index %d\n", actlen, index);
 
 		data = usbd_xfer_get_priv(xfer);
-		run_tx_free(pq, data, 0);
+		umt_tx_free(pq, data, 0);
 		usbd_xfer_set_priv(xfer, NULL);
 
 		/* FALLTHROUGH */
@@ -2856,10 +2867,10 @@ tr_setup:
 		size = (sc->mac_ver == 0x5592) ?
 		    sizeof(data->desc) + sizeof(uint32_t) : sizeof(data->desc);
 		if ((m->m_pkthdr.len +
-		    size + 3 + 8) > RUN_MAX_TXSZ) {
+		    size + 3 + 8) > UMT_MAX_TXSZ) {
 			DPRINTF("data overflow, %u bytes\n",
 			    m->m_pkthdr.len);
-			run_tx_free(pq, data, 1);
+			umt_tx_free(pq, data, 1);
 			goto tr_setup;
 		}
 
@@ -2877,7 +2888,7 @@ tr_setup:
 
 		vap = data->ni->ni_vap;
 		if (ieee80211_radiotap_active_vap(vap)) {
-			struct run_tx_radiotap_header *tap = &sc->sc_txtap;
+			struct umt_tx_radiotap_header *tap = &sc->sc_txtap;
 			struct rt2860_txwi *txwi = 
 			    (struct rt2860_txwi *)(&data->desc + sizeof(struct rt2870_txd));
 			tap->wt_flags = 0;
@@ -2897,7 +2908,7 @@ tr_setup:
 		usbd_xfer_set_frame_len(xfer, 0, size);
 		usbd_xfer_set_priv(xfer, data);
 		usbd_transfer_submit(xfer);
-		run_start(sc);
+		umt_start(sc);
 
 		break;
 
@@ -2910,7 +2921,7 @@ tr_setup:
 		if (data != NULL) {
 			if(data->ni != NULL)
 				vap = data->ni->ni_vap;
-			run_tx_free(pq, data, error);
+			umt_tx_free(pq, data, error);
 			usbd_xfer_set_priv(xfer, NULL);
 		}
 
@@ -2922,9 +2933,9 @@ tr_setup:
 				device_printf(sc->sc_dev, "device timeout\n");
 				uint32_t i = RUN_CMDQ_GET(&sc->cmdq_store);
 				DPRINTF("cmdq_store=%d\n", i);
-				sc->cmdq[i].func = run_usb_timeout_cb;
+				sc->cmdq[i].func = umt_usb_timeout_cb;
 				sc->cmdq[i].arg0 = vap;
-				ieee80211_runtask(ic, &sc->cmdq_task);
+				ieee80211_umttask(ic, &sc->cmdq_task);
 			}
 
 			/*
@@ -2937,44 +2948,45 @@ tr_setup:
 		}
 		break;
 	}
+#endif
 }
 
 static void
-run_bulk_tx_callback0(struct usb_xfer *xfer, usb_error_t error)
+umt_bulk_tx_callback0(struct usb_xfer *xfer, usb_error_t error)
 {
-	run_bulk_tx_callbackN(xfer, error, 0);
+	umt_bulk_tx_callbackN(xfer, error, 0);
 }
 
 static void
-run_bulk_tx_callback1(struct usb_xfer *xfer, usb_error_t error)
+umt_bulk_tx_callback1(struct usb_xfer *xfer, usb_error_t error)
 {
-	run_bulk_tx_callbackN(xfer, error, 1);
+	umt_bulk_tx_callbackN(xfer, error, 1);
 }
 
 static void
-run_bulk_tx_callback2(struct usb_xfer *xfer, usb_error_t error)
+umt_bulk_tx_callback2(struct usb_xfer *xfer, usb_error_t error)
 {
-	run_bulk_tx_callbackN(xfer, error, 2);
+	umt_bulk_tx_callbackN(xfer, error, 2);
 }
 
 static void
-run_bulk_tx_callback3(struct usb_xfer *xfer, usb_error_t error)
+umt_bulk_tx_callback3(struct usb_xfer *xfer, usb_error_t error)
 {
-	run_bulk_tx_callbackN(xfer, error, 3);
+	umt_bulk_tx_callbackN(xfer, error, 3);
 }
 
 static void
-run_bulk_tx_callback4(struct usb_xfer *xfer, usb_error_t error)
+umt_bulk_tx_callback4(struct usb_xfer *xfer, usb_error_t error)
 {
-	run_bulk_tx_callbackN(xfer, error, 4);
+	umt_bulk_tx_callbackN(xfer, error, 4);
 }
 
 static void
-run_bulk_tx_callback5(struct usb_xfer *xfer, usb_error_t error)
+umt_bulk_tx_callback5(struct usb_xfer *xfer, usb_error_t error)
 {
-	run_bulk_tx_callbackN(xfer, error, 5);
+	umt_bulk_tx_callbackN(xfer, error, 5);
 }
-
+#if 0
 static void
 run_set_tx_desc(struct run_softc *sc, struct run_tx_data *data)
 {
@@ -6039,6 +6051,7 @@ run_delay(struct run_softc *sc, u_int ms)
 	    &sc->sc_mtx : NULL, USB_MS_TO_TICKS(ms));
 }
 #endif
+
 static device_method_t umt_methods[] = {
 	/* Device interface */
 	DEVMETHOD(device_probe,		umt_match),
