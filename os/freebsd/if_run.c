@@ -339,7 +339,7 @@ static device_probe_t	run_match;
 static device_attach_t	run_attach;
 static device_detach_t	run_detach;
 
-//static usb_callback_t	run_bulk_rx_callback;
+static usb_callback_t	run_bulk_rx_callback;
 static usb_callback_t	run_bulk_tx_callback0;
 static usb_callback_t	run_bulk_tx_callback1;
 static usb_callback_t	run_bulk_tx_callback2;
@@ -474,9 +474,7 @@ static void	run_init_locked(struct run_softc *);
 static void	run_stop(void *);
 static void	run_delay(struct run_softc *, u_int);
 
-#if 0
-
-static eventhandler_tag run_etag;
+//static eventhandler_tag run_etag;
 
 static const struct rt2860_rate {
 	uint8_t		rate;
@@ -585,8 +583,6 @@ static const struct {
 	RT5592_CHAN_5GHZ
 };
 
-#endif
-
 static const struct usb_config run_config[RUN_N_XFER] = {
     [RUN_BULK_TX_BE] = {
 	.type = UE_BULK,
@@ -654,8 +650,7 @@ static const struct usb_config run_config[RUN_N_XFER] = {
 	.direction = UE_DIR_IN,
 	.bufsize = RUN_MAX_RXSZ,
 	.flags = {.pipe_bof = 1,.short_xfer_ok = 1,},
-	//.callback = run_bulk_rx_callback,
-	.callback = NULL,
+	.callback = run_bulk_rx_callback,
     }
 };
 
@@ -724,11 +719,10 @@ run_attach(device_t self)
 {
 	struct run_softc *sc = device_get_softc(self);
 	struct usb_attach_arg *uaa = device_get_ivars(self);
-	//struct ieee80211com *ic = &sc->sc_ic;
-	//uint32_t ver;
+	struct ieee80211com *ic = &sc->sc_ic;
+	uint32_t ver;
 	uint8_t iface_index;
-	//int ntries, error;
-	int error;
+	int ntries, error;
 
 	device_set_usb_desc(self);
 	sc->sc_udev = uaa->device;
@@ -750,8 +744,10 @@ run_attach(device_t self)
 		goto detach;
 	}
 
-#if 0
 	RUN_LOCK(sc);
+	device_printf(sc->sc_dev,
+		"trying to read Asic Ver from RT2860_ASIC_VER_ID %x\n", 
+		RT2860_ASIC_VER_ID);
 
 	/* wait for the chip to settle */
 	for (ntries = 0; ntries < 100; ntries++) {
@@ -781,6 +777,7 @@ run_attach(device_t self)
 	    sc->ntxchains, sc->nrxchains, ether_sprintf(ic->ic_macaddr));
 
 	RUN_UNLOCK(sc);
+#if 0
 
 	ic->ic_softc = sc;
 	ic->ic_name = device_get_nameunit(self);
@@ -850,7 +847,6 @@ detach:
 	return (ENXIO);
 }
 
-#if 0
 static void
 run_drain_mbufq(struct run_softc *sc)
 {
@@ -865,7 +861,7 @@ run_drain_mbufq(struct run_softc *sc)
 		m_freem(m);
 	}
 }
-#endif
+
 static int
 run_detach(device_t self)
 {
@@ -904,7 +900,7 @@ run_detach(device_t self)
 #endif
 	return (0);
 }
-#if 0
+
 static struct ieee80211vap *
 run_vap_create(struct ieee80211com *ic, const char name[IFNAMSIZ], int unit,
     enum ieee80211_opmode opmode, int flags,
@@ -3035,7 +3031,7 @@ run_tx_free(struct run_endpoint_queue *pq,
 	STAILQ_INSERT_TAIL(&pq->tx_fh, data, next);
 	pq->tx_nfree++;
 }
-#endif
+
 static void
 run_bulk_tx_callbackN(struct usb_xfer *xfer, usb_error_t error, u_int index)
 {
@@ -3195,7 +3191,7 @@ run_bulk_tx_callback5(struct usb_xfer *xfer, usb_error_t error)
 {
 	run_bulk_tx_callbackN(xfer, error, 5);
 }
-#if 0
+
 static void
 run_set_tx_desc(struct run_softc *sc, struct run_tx_data *data)
 {
@@ -6259,7 +6255,7 @@ run_delay(struct run_softc *sc, u_int ms)
 	usb_pause_mtx(mtx_owned(&sc->sc_mtx) ? 
 	    &sc->sc_mtx : NULL, USB_MS_TO_TICKS(ms));
 }
-#endif
+
 static device_method_t run_methods[] = {
 	/* Device interface */
 	DEVMETHOD(device_probe,		run_match),
