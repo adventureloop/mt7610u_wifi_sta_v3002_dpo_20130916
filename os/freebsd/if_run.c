@@ -773,6 +773,7 @@ run_attach(device_t self)
 	    "MAC/BBP RT%04X (rev 0x%04X)...detaching\n",
 	    sc->mac_ver, sc->mac_rev);
 
+	RUN_UNLOCK(sc);
 	goto detach;
 	/* retrieve RF rev. no and various other things from EEPROM */
 	run_read_eeprom(sc);
