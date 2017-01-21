@@ -752,6 +752,8 @@ run_attach(device_t self)
 	/* wait for the chip to settle */
 	for (ntries = 0; ntries < 100; ntries++) {
 		if (run_read(sc, RT2860_ASIC_VER_ID, &ver) != 0) {
+			device_printf(sc->sc_dev,
+				"asic read error, detaching\n");
 			RUN_UNLOCK(sc);
 			goto detach;
 		}
@@ -767,7 +769,11 @@ run_attach(device_t self)
 	}
 	sc->mac_ver = ver >> 16;
 	sc->mac_rev = ver & 0xffff;
+	device_printf(sc->sc_dev,
+	    "MAC/BBP RT%04X (rev 0x%04X)...detaching\n",
+	    sc->mac_ver, sc->mac_rev);
 
+	goto detach;
 	/* retrieve RF rev. no and various other things from EEPROM */
 	run_read_eeprom(sc);
 
@@ -777,7 +783,6 @@ run_attach(device_t self)
 	    sc->ntxchains, sc->nrxchains, ether_sprintf(ic->ic_macaddr));
 
 	RUN_UNLOCK(sc);
-#if 0
 
 	ic->ic_softc = sc;
 	ic->ic_name = device_get_nameunit(self);
@@ -786,8 +791,9 @@ run_attach(device_t self)
 
 	/* set device capabilities */
 	ic->ic_caps =
+	    IEEE80211_C_MONITOR;	/* monitor mode supported */
+#if 0
 	    IEEE80211_C_STA |		/* station mode supported */
-	    IEEE80211_C_MONITOR |	/* monitor mode supported */
 	    IEEE80211_C_IBSS |
 	    IEEE80211_C_HOSTAP |
 	    IEEE80211_C_WDS |		/* 4-address traffic works */
@@ -802,6 +808,7 @@ run_attach(device_t self)
 	    IEEE80211_CRYPTO_AES_CCM |
 	    IEEE80211_CRYPTO_TKIPMIC |
 	    IEEE80211_CRYPTO_TKIP;
+#endif
 
 	ic->ic_flags |= IEEE80211_F_DATAPAD;
 	ic->ic_flags_ext |= IEEE80211_FEXT_SWBMISS;
@@ -810,10 +817,7 @@ run_attach(device_t self)
 	    ic->ic_channels);
 
 	ieee80211_ifattach(ic);
-
-	ic->ic_scan_start = run_scan_start;
-	ic->ic_scan_end = run_scan_end;
-	ic->ic_set_channel = run_set_channel;
+#if 0
 	ic->ic_getradiocaps = run_getradiocaps;
 	ic->ic_node_alloc = run_node_alloc;
 	ic->ic_newassoc = run_newassoc;
@@ -822,10 +826,16 @@ run_attach(device_t self)
 	ic->ic_wme.wme_update = run_wme_update;
 	ic->ic_raw_xmit = run_raw_xmit;
 	ic->ic_update_promisc = run_update_promisc;
+	ic->ic_transmit = run_transmit;
+#endif
+	ic->ic_parent = run_parent;
+
+//required
+	ic->ic_scan_start = run_scan_start;
+	ic->ic_scan_end = run_scan_end;
+	ic->ic_set_channel = run_set_channel;
 	ic->ic_vap_create = run_vap_create;
 	ic->ic_vap_delete = run_vap_delete;
-	ic->ic_transmit = run_transmit;
-	ic->ic_parent = run_parent;
 
 	ieee80211_radiotap_attach(ic,
 	    &sc->sc_txtap.wt_ihdr, sizeof(sc->sc_txtap),
@@ -837,8 +847,9 @@ run_attach(device_t self)
 	TASK_INIT(&sc->ratectl_task, 0, run_ratectl_cb, sc);
 	usb_callout_init_mtx(&sc->ratectl_ch, &sc->sc_mtx, 0);
 
-	if (bootverbose)
+	//if (bootverbose)
 		ieee80211_announce(ic);
+#if 0
 #endif
 	return (0);
 
@@ -2618,7 +2629,7 @@ run_iter_func(void *arg, struct ieee80211_node *ni)
 		memset(wstat, 0, sizeof(*wstat));
 	}
 
-	ieee80211_ratectl_tx_update(vap, ni, &txcnt, &success, &retrycnt);
+	//ieee80211_ratectl_tx_update(vap, ni, &txcnt, &success, &retrycnt);
 	rn->amrr_ridx = ieee80211_ratectl_rate(ni, NULL, 0);
 
 fail:
