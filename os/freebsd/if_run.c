@@ -783,7 +783,6 @@ run_attach(device_t self)
 	    sc->ntxchains, sc->nrxchains, ether_sprintf(ic->ic_macaddr));
 
 	RUN_UNLOCK(sc);
-	goto detach;
 
 	ic->ic_softc = sc;
 	ic->ic_name = device_get_nameunit(self);
