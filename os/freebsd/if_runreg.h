@@ -81,6 +81,9 @@
 /* RT5592 registers */
 #define	RT5592_DEBUG_INDEX		0x05e8
 
+/* MT76x0 registers */
+#define COM_REG0            	0x0730
+
 /* MAC registers */
 #define	RT2860_ASIC_VER_ID		0x1000
 #define	RT2860_MAC_SYS_CTRL		0x1004
