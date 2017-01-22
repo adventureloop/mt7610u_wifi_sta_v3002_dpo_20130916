@@ -1244,6 +1244,10 @@ run_load_mt_microcode(struct run_softc *sc)
 	int ntries, error;
 	//const uint64_t *temp;
 	//uint64_t bytes;
+	//int ilm_len = 0x00;
+	//int dlm_len = 0x00;
+	//int fw_ver =  0x00;
+	//int build_ver = 0x00;
 
 	RUN_UNLOCK(sc);
 	fw = firmware_get("run_mtfw");
@@ -1261,7 +1265,29 @@ run_load_mt_microcode(struct run_softc *sc)
 		error = EINVAL;
 		goto fail;
 	}
+#if 0
+	/* Get FW information */
+	ilm_len = (*(fw->data + 3) << 24) | (*(fw->data + 2) << 16) |
+			 (*(fw->data + 1) << 8) | (*fw->data);
+	dlm_len = (*(fw->data + 7) << 24) | (*(fw->data + 6) << 16) |
+			 (*(fw->data + 5) << 8) | (*(fw->data + 4));
+	fw_ver = (*(fw->data + 11) << 8) | (*(fw->data + 10));
+	build_ver = (*(fw->data + 9) << 8) | (*(fw->data + 8));
 
+	device_printf(sc->sc_dev,
+	("fw version:%d.%d.%02d ", (fw_ver & 0xf000) >> 8,
+						(fw_ver & 0x0f00) >> 8, fw_ver & 0x00ff));
+	device_printf(sc->sc_dev, ("build:%x\n", build_ver));
+	device_printf(sc->sc_dev, ("build time:"));
+
+	for (loop = 0; loop < 16; loop++) {
+		device_printf(sc->sc_dev, ("%c", *(fw->data + 16 + loop)));
+	}
+	device_printf(sc->sc_dev, ("\n"));
+	device_printf(sc->sc_dev, ("ilm length = %d(bytes)\n", ilm_len));
+	device_printf(sc->sc_dev, ("dlm length = %d(bytes)\n", dlm_len));
+
+#endif
 #if 0
 	/*
 	 * RT3071/RT3072 use a different firmware
@@ -1321,12 +1347,20 @@ run_load_mt_microcode(struct run_softc *sc)
 
 	/* wait until microcontroller is ready */
 	for (ntries = 0; ntries < 1000; ntries++) {
+	/*
 		if ((error = run_read(sc, RT2860_SYS_CTRL, &tmp)) != 0)
 			goto fail;
 		if (tmp & RT2860_MCU_READY)
 			break;
 		run_delay(sc, 10);
+	*/
+		if ((error = run_read(sc, COM_REG0, &tmp)) != 0)
+			goto fail;
+		if (tmp & 0x01)
+			break;
+		run_delay(sc, 10);
 	}
+
 	if (ntries == 1000) {
 		device_printf(sc->sc_dev,
 		    "timeout waiting for MCU to initialize\n");
@@ -1342,6 +1376,7 @@ fail:
 	firmware_put(fw, FIRMWARE_UNLOAD);
 	return (error);
 }
+
 static int
 run_reset(struct run_softc *sc)
 {
