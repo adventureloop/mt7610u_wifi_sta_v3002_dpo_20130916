@@ -363,6 +363,7 @@ static void	run_setup_tx_list(struct run_softc *,
 static void	run_unsetup_tx_list(struct run_softc *,
 		    struct run_endpoint_queue *);
 static int	run_load_microcode(struct run_softc *);
+static int	run_load_mt_microcode(struct run_softc *);
 static int	run_reset(struct run_softc *);
 static usb_error_t run_do_request(struct run_softc *,
 		    struct usb_device_request *, void *);
@@ -1142,9 +1143,14 @@ run_load_microcode(struct run_softc *sc)
 	const uint64_t *temp;
 	uint64_t bytes;
 
+	if (sc->mac_ver == 0x7150) {	
+		return run_load_mt_microcode(sc);
+	}
+
 	RUN_UNLOCK(sc);
 	fw = firmware_get("runfw");
 	RUN_LOCK(sc);
+
 	if (fw == NULL) {
 		device_printf(sc->sc_dev,
 		    "failed loadfirmware of file %s\n", "runfw");
@@ -1229,6 +1235,114 @@ fail:
 	return (error);
 }
 
+static int
+run_load_mt_microcode(struct run_softc *sc)
+{
+	usb_device_request_t req;
+	const struct firmware *fw;
+	const u_char *base;
+	uint32_t tmp;
+	int ntries, error;
+	//const uint64_t *temp;
+	//uint64_t bytes;
+
+	RUN_UNLOCK(sc);
+	fw = firmware_get("run_mtfw");
+	RUN_LOCK(sc);
+
+	if (fw == NULL) {
+		device_printf(sc->sc_dev,
+		    "failed loadfirmware of file %s\n", "runfw");
+		return ENOENT;
+	}
+
+	if (fw->datasize != 80288) {
+		device_printf(sc->sc_dev,
+		    "invalid firmware size (should be 80KB)\n");
+		error = EINVAL;
+		goto fail;
+	}
+
+#if 0
+	/*
+	 * RT3071/RT3072 use a different firmware
+	 * run-rt2870 (8KB) contains both,
+	 * first half (4KB) is for rt2870,
+	 * last half is for rt3071.
+	 */
+	base = fw->data;
+	if ((sc->mac_ver) != 0x2860 &&
+	    (sc->mac_ver) != 0x2872 &&
+	    (sc->mac_ver) != 0x3070) { 
+		base += 4096;
+	}
+
+	/* cheap sanity check */
+	temp = fw->data;
+	bytes = *temp;
+	if (bytes != be64toh(0xffffff0210280210ULL)) {
+		device_printf(sc->sc_dev, "firmware checksum failed\n");
+		error = EINVAL;
+		goto fail;
+	}
+#endif
+
+	base = fw->data;
+	/* write microcode image */
+	if (sc->sc_flags & RUN_FLAG_FWLOAD_NEEDED) {
+		int len = fw->datasize;
+		while (len > 0) {
+			int write_size = MIN(4096, len);
+			run_write_region_1(sc, RT2870_FW_BASE, base, write_size);
+			base += write_size;
+			len -= write_size;
+		}
+		run_write(sc, RT2860_H2M_MAILBOX_CID, 0xffffffff);
+		run_write(sc, RT2860_H2M_MAILBOX_STATUS, 0xffffffff);
+	}
+
+	req.bmRequestType = UT_WRITE_VENDOR_DEVICE;
+	req.bRequest = RT2870_RESET;
+	USETW(req.wValue, 8);
+	USETW(req.wIndex, 0);
+	USETW(req.wLength, 0);
+	if ((error = usbd_do_request(sc->sc_udev, &sc->sc_mtx, &req, NULL))
+	    != 0) {
+		device_printf(sc->sc_dev, "firmware reset failed\n");
+		goto fail;
+	}
+
+	run_delay(sc, 10);
+
+	run_write(sc, RT2860_H2M_BBPAGENT, 0);
+	run_write(sc, RT2860_H2M_MAILBOX, 0);
+	run_write(sc, RT2860_H2M_INTSRC, 0);
+	if ((error = run_mcu_cmd(sc, RT2860_MCU_CMD_RFRESET, 0)) != 0)
+		goto fail;
+
+	/* wait until microcontroller is ready */
+	for (ntries = 0; ntries < 1000; ntries++) {
+		if ((error = run_read(sc, RT2860_SYS_CTRL, &tmp)) != 0)
+			goto fail;
+		if (tmp & RT2860_MCU_READY)
+			break;
+		run_delay(sc, 10);
+	}
+	if (ntries == 1000) {
+		device_printf(sc->sc_dev,
+		    "timeout waiting for MCU to initialize\n");
+		error = ETIMEDOUT;
+		goto fail;
+	}
+	device_printf(sc->sc_dev, "firmware %s ver. %u.%u loaded\n",
+	    //(base == fw->data) ? "RT2870" : "RT3071",
+		"MT7610",
+	    *(base + 4092), *(base + 4093));
+
+fail:
+	firmware_put(fw, FIRMWARE_UNLOAD);
+	return (error);
+}
 static int
 run_reset(struct run_softc *sc)
 {
