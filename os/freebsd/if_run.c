@@ -1295,15 +1295,20 @@ run_load_mt_microcode(struct run_softc *sc)
 #endif
 	memcpy(&fw_hdr, fw->data, sizeof(struct mtfw_hdr));
 
+	fw_hdr.ilm_len = le32toh(fw_hdr.ilm_len);
+	fw_hdr.dlm_len = le32toh(fw_hdr.dlm_len);
+	fw_hdr.fw_ver = le16toh(fw_hdr.fw_ver);
+	fw_hdr.build_ver = le16toh(fw_hdr.build_ver);
+
 	device_printf(sc->sc_dev, "build:%x\n", fw_hdr.build_ver);
 	device_printf(sc->sc_dev,
 		"fw version:%d.%d.%02d\n", 
 		(fw_hdr.fw_ver & 0xf000) >> 8,
 		(fw_hdr.fw_ver & 0x0f00) >> 8, 
 		fw_hdr.fw_ver & 0x00ff);
-	device_printf(sc->sc_dev, "build time: %16s\n", fw_hdr.build_time);
 	device_printf(sc->sc_dev, "ilm length: %d\n", fw_hdr.ilm_len);
 	device_printf(sc->sc_dev, "dlm length: %d\n", fw_hdr.dlm_len);
+	device_printf(sc->sc_dev, "build time: %16s\n", fw_hdr.build_time);
 
 #if 0
 	/*
