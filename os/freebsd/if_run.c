@@ -1234,20 +1234,33 @@ fail:
 	return (error);
 }
 
+struct mtfw_hdr {
+	uint32_t ilm_len;
+	uint32_t dlm_len;
+	uint16_t fw_ver;
+	uint16_t build_ver;
+	char *build_time;
+};
+
 static int
 run_load_mt_microcode(struct run_softc *sc)
 {
 	usb_device_request_t req;
 	const struct firmware *fw;
-	const u_char *base;
+	const uint8_t *base;
+	const uint8_t *fw_base;
 	uint32_t tmp;
 	int ntries, error;
 	//const uint64_t *temp;
 	//uint64_t bytes;
-	//int ilm_len = 0x00;
-	//int dlm_len = 0x00;
-	//int fw_ver =  0x00;
-	//int build_ver = 0x00;
+/*
+	uint32_t ilm_len;
+	uint32_t dlm_len;
+	uint16_t fw_ver;
+	uint16_t build_ver;
+	char *build_time;
+*/
+	struct mtfw_hdr fw_hdr;
 
 	RUN_UNLOCK(sc);
 	fw = firmware_get("run_mtfw");
@@ -1255,7 +1268,7 @@ run_load_mt_microcode(struct run_softc *sc)
 
 	if (fw == NULL) {
 		device_printf(sc->sc_dev,
-		    "failed loadfirmware of file %s\n", "runfw");
+		    "failed loadfirmware of file %s\n", "run_mtfw");
 		return ENOENT;
 	}
 
@@ -1266,34 +1279,33 @@ run_load_mt_microcode(struct run_softc *sc)
 		goto fail;
 	}
 #if 0
-	/* Get FW information */
-	ilm_len = (*(fw->data + 3) << 24) | (*(fw->data + 2) << 16) |
-			 (*(fw->data + 1) << 8) | (*fw->data);
-	dlm_len = (*(fw->data + 7) << 24) | (*(fw->data + 6) << 16) |
-			 (*(fw->data + 5) << 8) | (*(fw->data + 4));
-	fw_ver = (*(fw->data + 11) << 8) | (*(fw->data + 10));
-	build_ver = (*(fw->data + 9) << 8) | (*(fw->data + 8));
-
-	device_printf(sc->sc_dev,
-	("fw version:%d.%d.%02d ", (fw_ver & 0xf000) >> 8,
-						(fw_ver & 0x0f00) >> 8, fw_ver & 0x00ff));
-	device_printf(sc->sc_dev, ("build:%x\n", build_ver));
-	device_printf(sc->sc_dev, ("build time:"));
-
-	for (loop = 0; loop < 16; loop++) {
-		device_printf(sc->sc_dev, ("%c", *(fw->data + 16 + loop)));
-	}
-	device_printf(sc->sc_dev, ("\n"));
-	device_printf(sc->sc_dev, ("ilm length = %d(bytes)\n", ilm_len));
-	device_printf(sc->sc_dev, ("dlm length = %d(bytes)\n", dlm_len));
-
+/*
+  #    ilm_len 4 bytes					  uint32_t ilm_len;
+  #    dlm_len 4 bytes					  uint32_t dlm_len;
+  #    fw_ver 2 bytes					  uint16_t fw_ver;
+  #    build_ver 2 bytes				  uint16_t build_ver
+  #										  char *build_time;
+  #    4 bytes of something?
+  #
+  #    build_time 16 byte str starting from byte 16 (base+16) """
+*/
 #endif
+	memcpy(&fw_hdr, fw->data, sizeof(struct mtfw_hdr));
+
+	device_printf(sc->sc_dev, "build:%x\n", fw_hdr.build_ver);
+	device_printf(sc->sc_dev,
+		"fw version:%d.%d.%02d", 
+		(fw_hdr.fw_ver & 0xf000) >> 8,
+		(fw_hdr.fw_ver & 0x0f00) >> 8, 
+		fw_hdr.fw_ver & 0x00ff);
+	device_printf(sc->sc_dev, "build time: %16s", fw_hdr.build_time);
+
+	device_printf(sc->sc_dev, "ilm length: %d\n", fw_hdr.ilm_len);
+	device_printf(sc->sc_dev, "dlm length: %d\n", fw_hdr.dlm_len);
 #if 0
 	/*
 	 * RT3071/RT3072 use a different firmware
 	 * run-rt2870 (8KB) contains both,
-	 * first half (4KB) is for rt2870,
-	 * last half is for rt3071.
 	 */
 	base = fw->data;
 	if ((sc->mac_ver) != 0x2860 &&
@@ -1311,11 +1323,21 @@ run_load_mt_microcode(struct run_softc *sc)
 		goto fail;
 	}
 #endif
-
-	base = fw->data;
+	fw_base = fw->data;
+	base = fw_base + 32;
 	/* write microcode image */
 	if (sc->sc_flags & RUN_FLAG_FWLOAD_NEEDED) {
-		int len = fw->datasize;
+
+		int len = fw_hdr.ilm_len;
+		while (len > 0) {
+			int write_size = MIN(4096, len);
+			run_write_region_1(sc, RT2870_FW_BASE, base, write_size);
+			base += write_size;
+			len -= write_size;
+		}
+
+		len = fw_hdr.dlm_len;
+		base = fw_base + fw_hdr.ilm_len + 32;
 		while (len > 0) {
 			int write_size = MIN(4096, len);
 			run_write_region_1(sc, RT2870_FW_BASE, base, write_size);
@@ -1347,16 +1369,9 @@ run_load_mt_microcode(struct run_softc *sc)
 
 	/* wait until microcontroller is ready */
 	for (ntries = 0; ntries < 1000; ntries++) {
-	/*
 		if ((error = run_read(sc, RT2860_SYS_CTRL, &tmp)) != 0)
 			goto fail;
 		if (tmp & RT2860_MCU_READY)
-			break;
-		run_delay(sc, 10);
-	*/
-		if ((error = run_read(sc, COM_REG0, &tmp)) != 0)
-			goto fail;
-		if (tmp & 0x01)
 			break;
 		run_delay(sc, 10);
 	}
