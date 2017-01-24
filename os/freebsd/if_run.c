@@ -1142,6 +1142,7 @@ run_load_microcode(struct run_softc *sc)
 	const uint64_t *temp;
 	uint64_t bytes;
 
+	device_printf(sc->sc_dev, "testing hardware rev for microcode load %x\n", sc->mac_ver);
 	if (sc->mac_ver == 0x7150) {	
 		return run_load_mt_microcode(sc);
 	}
@@ -1261,6 +1262,7 @@ run_load_mt_microcode(struct run_softc *sc)
 	char *build_time;
 */
 	struct mtfw_hdr fw_hdr;
+	device_printf(sc->sc_dev, "loading MT microcode");
 
 	RUN_UNLOCK(sc);
 	fw = firmware_get("run_mtfw");
@@ -1294,14 +1296,14 @@ run_load_mt_microcode(struct run_softc *sc)
 
 	device_printf(sc->sc_dev, "build:%x\n", fw_hdr.build_ver);
 	device_printf(sc->sc_dev,
-		"fw version:%d.%d.%02d", 
+		"fw version:%d.%d.%02d\n", 
 		(fw_hdr.fw_ver & 0xf000) >> 8,
 		(fw_hdr.fw_ver & 0x0f00) >> 8, 
 		fw_hdr.fw_ver & 0x00ff);
-	device_printf(sc->sc_dev, "build time: %16s", fw_hdr.build_time);
-
+	device_printf(sc->sc_dev, "build time: %16s\n", fw_hdr.build_time);
 	device_printf(sc->sc_dev, "ilm length: %d\n", fw_hdr.ilm_len);
 	device_printf(sc->sc_dev, "dlm length: %d\n", fw_hdr.dlm_len);
+
 #if 0
 	/*
 	 * RT3071/RT3072 use a different firmware
