@@ -1143,7 +1143,8 @@ run_load_microcode(struct run_softc *sc)
 	uint64_t bytes;
 
 	device_printf(sc->sc_dev, "testing hardware rev for microcode load %x\n", sc->mac_ver);
-	if (sc->mac_ver == 0x7150) {	
+	//if (sc->mac_ver == 0x7150) {	
+	if (sc != NULL) {
 		return run_load_mt_microcode(sc);
 	}
 
