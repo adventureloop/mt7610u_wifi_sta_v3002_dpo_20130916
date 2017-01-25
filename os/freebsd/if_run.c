@@ -1288,7 +1288,7 @@ run_load_mt_microcode(struct run_softc *sc)
 		(fw_hdr.fw_ver & 0x0f00) >> 8, fw_hdr.fw_ver & 0x00ff);
 	device_printf(sc->sc_dev, "ilm length: %d\n", fw_hdr.ilm_len);
 	device_printf(sc->sc_dev, "dlm length: %d\n", fw_hdr.dlm_len);
-	device_printf(sc->sc_dev, "build time: %.16s\n", fw_hdr.build_time);
+	//device_printf(sc->sc_dev, "build time: %.16s\n", fw_hdr.build_time);
 	
 	fw_base = fw->data;
 	base = fw_base + 32;
