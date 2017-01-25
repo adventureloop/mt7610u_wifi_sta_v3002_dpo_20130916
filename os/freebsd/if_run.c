@@ -1254,15 +1254,7 @@ run_load_mt_microcode(struct run_softc *sc)
 	const uint8_t *fw_base;
 	uint32_t tmp;
 	int ntries, error;
-	//const uint64_t *temp;
-	//uint64_t bytes;
-/*
-	uint32_t ilm_len;
-	uint32_t dlm_len;
-	uint16_t fw_ver;
-	uint16_t build_ver;
-	char *build_time;
-*/
+
 	struct mtfw_hdr fw_hdr;
 	device_printf(sc->sc_dev, "loading MT microcode\n");
 
@@ -1282,18 +1274,7 @@ run_load_mt_microcode(struct run_softc *sc)
 		error = EINVAL;
 		goto fail;
 	}
-#if 0
-/*
-  #    ilm_len 4 bytes					  uint32_t ilm_len;
-  #    dlm_len 4 bytes					  uint32_t dlm_len;
-  #    fw_ver 2 bytes					  uint16_t fw_ver;
-  #    build_ver 2 bytes				  uint16_t build_ver
-  #										  char *build_time;
-  #    4 bytes of something?
-  #
-  #    build_time 16 byte str starting from byte 16 (base+16) """
-*/
-#endif
+
 	memcpy(&fw_hdr, fw->data, sizeof(struct mtfw_hdr));
 
 	fw_hdr.ilm_len = le32toh(fw_hdr.ilm_len);
@@ -1301,42 +1282,20 @@ run_load_mt_microcode(struct run_softc *sc)
 	fw_hdr.fw_ver = le16toh(fw_hdr.fw_ver);
 	fw_hdr.build_ver = le16toh(fw_hdr.build_ver);
 
-	device_printf(sc->sc_dev, "build:%x\n", fw_hdr.build_ver);
+	device_printf(sc->sc_dev, "build: %x\n", fw_hdr.build_ver);
 	device_printf(sc->sc_dev,
-		"fw version:%d.%d.%02d\n", 
-		(fw_hdr.fw_ver & 0xf000) >> 8,
-		(fw_hdr.fw_ver & 0x0f00) >> 8, 
-		fw_hdr.fw_ver & 0x00ff);
+		"fw version: %d.%d.%02d\n", (fw_hdr.fw_ver & 0xf000) >> 8,
+		(fw_hdr.fw_ver & 0x0f00) >> 8, fw_hdr.fw_ver & 0x00ff);
 	device_printf(sc->sc_dev, "ilm length: %d\n", fw_hdr.ilm_len);
 	device_printf(sc->sc_dev, "dlm length: %d\n", fw_hdr.dlm_len);
 	device_printf(sc->sc_dev, "build time: %.16s\n", fw_hdr.build_time);
-
-#if 0
-	/*
-	 * RT3071/RT3072 use a different firmware
-	 * run-rt2870 (8KB) contains both,
-	 */
-	base = fw->data;
-	if ((sc->mac_ver) != 0x2860 &&
-	    (sc->mac_ver) != 0x2872 &&
-	    (sc->mac_ver) != 0x3070) { 
-		base += 4096;
-	}
-
-	/* cheap sanity check */
-	temp = fw->data;
-	bytes = *temp;
-	if (bytes != be64toh(0xffffff0210280210ULL)) {
-		device_printf(sc->sc_dev, "firmware checksum failed\n");
-		error = EINVAL;
-		goto fail;
-	}
-#endif
+	
 	fw_base = fw->data;
 	base = fw_base + 32;
 	/* write microcode image */
 	if (sc->sc_flags & RUN_FLAG_FWLOAD_NEEDED) {
 
+		device_printf(sc->sc_dev, "writing ilm\n");
 		int len = fw_hdr.ilm_len;
 		while (len > 0) {
 			int write_size = MIN(4096, len);
@@ -1347,6 +1306,7 @@ run_load_mt_microcode(struct run_softc *sc)
 
 		len = fw_hdr.dlm_len;
 		base = fw_base + fw_hdr.ilm_len + 32;
+		device_printf(sc->sc_dev, "writing dlm\n");
 		while (len > 0) {
 			int write_size = MIN(4096, len);
 			run_write_region_1(sc, RT2870_FW_BASE, base, write_size);
