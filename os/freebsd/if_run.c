@@ -1241,6 +1241,7 @@ struct mtfw_hdr {
 	uint32_t dlm_len;
 	uint16_t fw_ver;
 	uint16_t build_ver;
+	uint32_t unused;
 	char *build_time;
 };
 
@@ -1263,7 +1264,7 @@ run_load_mt_microcode(struct run_softc *sc)
 	char *build_time;
 */
 	struct mtfw_hdr fw_hdr;
-	device_printf(sc->sc_dev, "loading MT microcode");
+	device_printf(sc->sc_dev, "loading MT microcode\n");
 
 	RUN_UNLOCK(sc);
 	fw = firmware_get("run_mtfw");
@@ -1308,7 +1309,7 @@ run_load_mt_microcode(struct run_softc *sc)
 		fw_hdr.fw_ver & 0x00ff);
 	device_printf(sc->sc_dev, "ilm length: %d\n", fw_hdr.ilm_len);
 	device_printf(sc->sc_dev, "dlm length: %d\n", fw_hdr.dlm_len);
-	device_printf(sc->sc_dev, "build time: %16s\n", fw_hdr.build_time);
+	device_printf(sc->sc_dev, "build time: %.16s\n", fw_hdr.build_time);
 
 #if 0
 	/*
