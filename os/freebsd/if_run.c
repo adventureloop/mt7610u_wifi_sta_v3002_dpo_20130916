@@ -1242,7 +1242,7 @@ struct mtfw_hdr {
 	uint16_t fw_ver;
 	uint16_t build_ver;
 	uint32_t unused;
-	char *build_time;
+	char build_time[16];
 };
 
 static int
