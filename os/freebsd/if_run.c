@@ -1288,7 +1288,7 @@ run_load_mt_microcode(struct run_softc *sc)
 		(fw_hdr.fw_ver & 0x0f00) >> 8, fw_hdr.fw_ver & 0x00ff);
 	device_printf(sc->sc_dev, "ilm length: %d\n", fw_hdr.ilm_len);
 	device_printf(sc->sc_dev, "dlm length: %d\n", fw_hdr.dlm_len);
-	//device_printf(sc->sc_dev, "build time: %.16s\n", fw_hdr.build_time);
+	device_printf(sc->sc_dev, "build time: %.16s\n", fw_hdr.build_time);
 	
 	fw_base = fw->data;
 	base = fw_base + 32;
@@ -1296,6 +1296,7 @@ run_load_mt_microcode(struct run_softc *sc)
 	if (sc->sc_flags & RUN_FLAG_FWLOAD_NEEDED) {
 
 		device_printf(sc->sc_dev, "writing ilm\n");
+#if 0
 		int len = fw_hdr.ilm_len;
 		while (len > 0) {
 			int write_size = MIN(4096, len);
@@ -1313,8 +1314,96 @@ run_load_mt_microcode(struct run_softc *sc)
 			base += write_size;
 			len -= write_size;
 		}
-		run_write(sc, RT2860_H2M_MAILBOX_CID, 0xffffffff);
-		run_write(sc, RT2860_H2M_MAILBOX_STATUS, 0xffffffff);
+
+#endif
+
+#define TX_CPU_PORT_FROM_FCE_CPU_DESC_INDEX 0x09A8
+#define USB_END_PADDING 4
+#define UPLOAD_FW_UNIT  14592
+#define HDR_LEN         32
+ 
+		uint32_t cur_len = 0;
+		uint32_t write_size = 0;
+		uint32_t write_max = 0;
+		uint16_t low;
+		uint16_t high;
+		uint32_t mac_value = 0;
+
+		cur_len = 0x40;      // 64
+
+		while(1) {
+			write_max = UPLOAD_FW_UNIT - HDR_LEN - USB_END_PADDING;
+
+			if (fw_hdr.ilm_len - cur_len > write_max) {
+				write_size = write_max;
+			} else {
+				write_size  = fw_hdr.ilm_len - cur_len;
+			}
+
+			if (write_size > 0) {
+
+				low = (cur_len & 0xFFFF);
+				high = (cur_len & 0xFFFF0000) >> 16;
+
+				run_write(sc, low, 0x230);
+				run_write(sc, high, 0x232);
+
+				low = ((write_size << 16) & 0xFFFF);
+				high = ((write_size << 16) & 0xFFFF0000) >> 16;
+
+				run_write(sc, low, 0x234);
+				run_write(sc, high, 0x236);
+
+				cur_len += write_size;
+
+				//pad write_size out to % 4
+				while(write_size%4 != 0)
+					write_size++;
+				run_write_region_1(sc, RT2870_FW_BASE, base, write_size);
+			}
+		}
+		run_read(sc, TX_CPU_PORT_FROM_FCE_CPU_DESC_INDEX, &mac_value);
+		run_write(sc, TX_CPU_PORT_FROM_FCE_CPU_DESC_INDEX, mac_value+1);
+
+		cur_len = 0x0;
+
+		while(1) {
+			write_max = UPLOAD_FW_UNIT - HDR_LEN - USB_END_PADDING;
+
+			if (fw_hdr.dlm_len - cur_len > write_max) {
+				write_size = write_max;
+			} else {
+				write_size  = fw_hdr.dlm_len - cur_len;
+			}
+
+			if (write_size > 0) {
+
+				low = (cur_len & 0xFFFF);
+				high = (cur_len & 0xFFFF0000) >> 16;
+
+				run_write(sc, low, 0x230);
+				run_write(sc, high, 0x232);
+
+				low = ((write_size << 16) & 0xFFFF);
+				high = ((write_size << 16) & 0xFFFF0000) >> 16;
+
+				run_write(sc, low, 0x234);
+				run_write(sc, high, 0x236);
+
+				cur_len += write_size;
+
+				//pad write_size out to % 4
+				while(write_size%4 != 0)
+					write_size++;
+				run_write_region_1(sc, RT2870_FW_BASE, base, write_size);
+			}
+		}
+
+		run_read(sc, TX_CPU_PORT_FROM_FCE_CPU_DESC_INDEX, &mac_value);
+		run_write(sc, TX_CPU_PORT_FROM_FCE_CPU_DESC_INDEX, mac_value+1);
+
+		//run_write(sc, RT2860_H2M_MAILBOX_CID, 0xffffffff);
+		//run_write(sc, RT2860_H2M_MAILBOX_STATUS, 0xffffffff);
 	}
 
 	req.bmRequestType = UT_WRITE_VENDOR_DEVICE;
