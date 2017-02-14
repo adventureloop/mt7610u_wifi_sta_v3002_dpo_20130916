@@ -771,7 +771,7 @@ run_attach(device_t self)
 	sc->mac_ver = ver >> 16;
 	sc->mac_rev = ver & 0xffff;
 	device_printf(sc->sc_dev,
-	    "MAC/BBP RT%04X (rev 0x%04X)...detaching\n",
+	    "MAC/BBP RT%04X (rev 0x%04X)\n",
 	    sc->mac_ver, sc->mac_rev);
 
 	/* retrieve RF rev. no and various other things from EEPROM */
@@ -849,8 +849,9 @@ run_attach(device_t self)
 
 	//if (bootverbose)
 		ieee80211_announce(ic);
-#if 0
-#endif
+
+	run_load_mt_microcode(sc);
+
 	return (0);
 
 detach:
