@@ -1331,73 +1331,68 @@ run_load_mt_microcode(struct run_softc *sc)
 
 		cur_len = 0x40;      // 64
 
-		while(1) {
-			write_max = UPLOAD_FW_UNIT - HDR_LEN - USB_END_PADDING;
+		write_max = UPLOAD_FW_UNIT - HDR_LEN - USB_END_PADDING;
 
+		do {
 			if (fw_hdr.ilm_len - cur_len > write_max) {
 				write_size = write_max;
 			} else {
 				write_size  = fw_hdr.ilm_len - cur_len;
 			}
+			device_printf(sc->sc_dev, "ilm write_size: %d\n", write_size);
 
-			if (write_size > 0) {
+			low = (cur_len & 0xFFFF);
+			high = (cur_len & 0xFFFF0000) >> 16;
 
-				low = (cur_len & 0xFFFF);
-				high = (cur_len & 0xFFFF0000) >> 16;
+			run_write(sc, low, 0x230);
+			run_write(sc, high, 0x232);
 
-				run_write(sc, low, 0x230);
-				run_write(sc, high, 0x232);
+			low = ((write_size << 16) & 0xFFFF);
+			high = ((write_size << 16) & 0xFFFF0000) >> 16;
 
-				low = ((write_size << 16) & 0xFFFF);
-				high = ((write_size << 16) & 0xFFFF0000) >> 16;
+			run_write(sc, low, 0x234);
+			run_write(sc, high, 0x236);
 
-				run_write(sc, low, 0x234);
-				run_write(sc, high, 0x236);
+			cur_len += write_size;
 
-				cur_len += write_size;
+			//pad write_size out to % 4
+			while(write_size%4 != 0)
+				write_size++;
+			run_write_region_1(sc, RT2870_FW_BASE, base, write_size);
+		} while(write_size > 0);
 
-				//pad write_size out to % 4
-				while(write_size%4 != 0)
-					write_size++;
-				run_write_region_1(sc, RT2870_FW_BASE, base, write_size);
-			}
-		}
 		run_read(sc, TX_CPU_PORT_FROM_FCE_CPU_DESC_INDEX, &mac_value);
 		run_write(sc, TX_CPU_PORT_FROM_FCE_CPU_DESC_INDEX, mac_value+1);
 
 		cur_len = 0x0;
 
-		while(1) {
-			write_max = UPLOAD_FW_UNIT - HDR_LEN - USB_END_PADDING;
-
+		do {
 			if (fw_hdr.dlm_len - cur_len > write_max) {
 				write_size = write_max;
 			} else {
 				write_size  = fw_hdr.dlm_len - cur_len;
 			}
+			device_printf(sc->sc_dev, "dlm write_size: %d\n", write_size);
 
-			if (write_size > 0) {
+			low = (cur_len & 0xFFFF);
+			high = (cur_len & 0xFFFF0000) >> 16;
 
-				low = (cur_len & 0xFFFF);
-				high = (cur_len & 0xFFFF0000) >> 16;
+			run_write(sc, low, 0x230);
+			run_write(sc, high, 0x232);
 
-				run_write(sc, low, 0x230);
-				run_write(sc, high, 0x232);
+			low = ((write_size << 16) & 0xFFFF);
+			high = ((write_size << 16) & 0xFFFF0000) >> 16;
 
-				low = ((write_size << 16) & 0xFFFF);
-				high = ((write_size << 16) & 0xFFFF0000) >> 16;
+			run_write(sc, low, 0x234);
+			run_write(sc, high, 0x236);
 
-				run_write(sc, low, 0x234);
-				run_write(sc, high, 0x236);
+			cur_len += write_size;
 
-				cur_len += write_size;
-
-				//pad write_size out to % 4
-				while(write_size%4 != 0)
-					write_size++;
-				run_write_region_1(sc, RT2870_FW_BASE, base, write_size);
-			}
-		}
+			//pad write_size out to % 4
+			while(write_size%4 != 0)
+				write_size++;
+			run_write_region_1(sc, RT2870_FW_BASE, base, write_size);
+		} while(write_size > 0);
 
 		run_read(sc, TX_CPU_PORT_FROM_FCE_CPU_DESC_INDEX, &mac_value);
 		run_write(sc, TX_CPU_PORT_FROM_FCE_CPU_DESC_INDEX, mac_value+1);
