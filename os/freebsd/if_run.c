@@ -850,7 +850,9 @@ run_attach(device_t self)
 	//if (bootverbose)
 		ieee80211_announce(ic);
 
-	run_load_mt_microcode(sc);
+	RUN_LOCK(sc);
+	run_init_locked(sc);
+	RUN_UNLOCK(sc);
 
 	return (0);
 
