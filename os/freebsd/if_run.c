@@ -1296,26 +1296,6 @@ run_load_mt_microcode(struct run_softc *sc)
 	if (sc->sc_flags & RUN_FLAG_FWLOAD_NEEDED) {
 
 		device_printf(sc->sc_dev, "writing ilm\n");
-#if 0
-		int len = fw_hdr.ilm_len;
-		while (len > 0) {
-			int write_size = MIN(4096, len);
-			run_write_region_1(sc, RT2870_FW_BASE, base, write_size);
-			base += write_size;
-			len -= write_size;
-		}
-
-		len = fw_hdr.dlm_len;
-		base = fw_base + fw_hdr.ilm_len + 32;
-		device_printf(sc->sc_dev, "writing dlm\n");
-		while (len > 0) {
-			int write_size = MIN(4096, len);
-			run_write_region_1(sc, RT2870_FW_BASE, base, write_size);
-			base += write_size;
-			len -= write_size;
-		}
-
-#endif
 
 #define TX_CPU_PORT_FROM_FCE_CPU_DESC_INDEX 0x09A8
 #define USB_END_PADDING 4
@@ -1435,10 +1415,11 @@ run_load_mt_microcode(struct run_softc *sc)
 		error = ETIMEDOUT;
 		goto fail;
 	}
-	device_printf(sc->sc_dev, "firmware %s ver. %u.%u loaded\n",
+	//device_printf(sc->sc_dev, "firmware %s ver. %u.%u loaded\n",
 	    //(base == fw->data) ? "RT2870" : "RT3071",
-		"MT7610",
-	    *(base + 4092), *(base + 4093));
+		//"MT7610",
+	    //*(base + 4092), *(base + 4093));
+	device_printf(sc->sc_dev, "MT76x0U firmware loaded\n");
 
 fail:
 	firmware_put(fw, FIRMWARE_UNLOAD);
