@@ -1335,6 +1335,10 @@ run_load_mt_microcode(struct run_softc *sc)
 			run_write(sc, low, 0x230);
 			run_write(sc, high, 0x232);
 
+			//pad write_size out to % 4
+			while(write_size%4 != 0)
+				write_size++;
+
 			low = ((write_size << 16) & 0xFFFF);
 			high = ((write_size << 16) & 0xFFFF0000) >> 16;
 
@@ -1343,9 +1347,6 @@ run_load_mt_microcode(struct run_softc *sc)
 
 			cur_len += write_size;
 
-			//pad write_size out to % 4
-			while(write_size%4 != 0)
-				write_size++;
 			run_write_region_1(sc, RT2870_FW_BASE, base, write_size);
 		} while(write_size > 0);
 
@@ -1373,15 +1374,15 @@ run_load_mt_microcode(struct run_softc *sc)
 			run_write(sc, low, 0x230);
 			run_write(sc, high, 0x232);
 
+			cur_len += write_size;
+
+			//pad write_size out to % 4
+
 			low = ((write_size << 16) & 0xFFFF);
 			high = ((write_size << 16) & 0xFFFF0000) >> 16;
 
 			run_write(sc, low, 0x234);
 			run_write(sc, high, 0x236);
-
-			cur_len += write_size;
-
-			//pad write_size out to % 4
 			while(write_size%4 != 0)
 				write_size++;
 			run_write_region_1(sc, RT2870_FW_BASE, base, write_size);
