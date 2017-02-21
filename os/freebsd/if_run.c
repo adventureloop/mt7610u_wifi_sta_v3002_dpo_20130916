@@ -1312,7 +1312,7 @@ run_load_mt_microcode(struct run_softc *sc)
 		uint16_t high;
 		uint32_t mac_value = 0;
 
-		cur_len = 0x40;      // 64
+//		cur_len = 0x40;      // 64
 
 		write_max = UPLOAD_FW_UNIT - HDR_LEN - USB_END_PADDING;
 
