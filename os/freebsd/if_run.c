@@ -1322,6 +1322,11 @@ run_load_mt_microcode(struct run_softc *sc)
 			} else {
 				write_size  = fw_hdr.ilm_len - cur_len;
 			}
+
+			if (write_size == 0) {
+				break;
+			}
+
 			device_printf(sc->sc_dev, "ilm write_size: %d\n", write_size);
 
 			low = (cur_len & 0xFFFF);
@@ -1355,6 +1360,11 @@ run_load_mt_microcode(struct run_softc *sc)
 			} else {
 				write_size  = fw_hdr.dlm_len - cur_len;
 			}
+
+			if (write_size == 0) {
+				break;
+			}
+
 			device_printf(sc->sc_dev, "dlm write_size: %d\n", write_size);
 
 			low = (cur_len & 0xFFFF);
