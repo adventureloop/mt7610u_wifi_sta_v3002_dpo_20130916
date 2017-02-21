@@ -1300,10 +1300,16 @@ run_load_mt_microcode(struct run_softc *sc)
 
 		device_printf(sc->sc_dev, "writing ilm\n");
 
-#define TX_CPU_PORT_FROM_FCE_CPU_DESC_INDEX 0x09A8
 #define USB_END_PADDING 4
 #define UPLOAD_FW_UNIT  14592
 #define HDR_LEN         32
+
+#define FCE_PSE_CTRL 0x0800
+#define FCE_SKIP_FS 0x0A6C
+#define FCE_PDMA_GLOBAL_CONF 0x09C4
+#define TX_CPU_PORT_FROM_FCE_CPU_DESC_INDEX 0x09A8
+#define TX_CPU_PORT_FROM_FCE_BASE_PTR 0x09A0
+#define TX_CPU_PORT_FROM_FCE_MAX_COUNT 0x09A4
  
 		uint32_t cur_len = 0;
 		uint32_t write_size = 0;
@@ -1313,6 +1319,45 @@ run_load_mt_microcode(struct run_softc *sc)
 		uint32_t mac_value = 0;
 
 //		cur_len = 0x40;      // 64
+
+		/* Enable FCE */
+//		RTUSBWriteMACRegister(ad, FCE_PSE_CTRL, 0x01, FALSE);
+
+		/* FCE tx_fs_base_ptr */
+//		RTUSBWriteMACRegister(ad, TX_CPU_PORT_FROM_FCE_BASE_PTR, 0x400230, FALSE);
+
+		/* FCE tx_fs_max_cnt */
+//		RTUSBWriteMACRegister(ad, TX_CPU_PORT_FROM_FCE_MAX_COUNT, 0x01, FALSE);
+
+		/* FCE pdma enable */
+//		RTUSBWriteMACRegister(ad, FCE_PDMA_GLOBAL_CONF, 0x44, FALSE);
+
+		/* FCE skip_fs_en */
+//		RTUSBWriteMACRegister(ad, FCE_SKIP_FS, 0x03, FALSE);
+
+
+		/* Enable FCE */
+//		RTUSBWriteMACRegister(ad, FCE_PSE_CTRL, 0x01, FALSE);
+		run_write(sc, FCE_PSE_CTRL, 0x01);
+
+		/* FCE tx_fs_base_ptr */
+//		RTUSBWriteMACRegister(ad, TX_CPU_PORT_FROM_FCE_BASE_PTR, 0x400230, FALSE);
+		run_write(sc, TX_CPU_PORT_FROM_FCE_BASE_PTR, 0x400230);
+
+		/* FCE tx_fs_max_cnt */
+//		RTUSBWriteMACRegister(ad, TX_CPU_PORT_FROM_FCE_MAX_COUNT, 0x01, FALSE);
+		run_write(sc, TX_CPU_PORT_FROM_FCE_MAX_COUNT, 0x1);
+
+		/* FCE pdma enable */
+//		RTUSBWriteMACRegister(ad, FCE_PDMA_GLOBAL_CONF, 0x44, FALSE);
+		run_write(sc, FCE_PDMA_GLOBAL_CONF, 0x44);
+
+		/* FCE skip_fs_en */
+//		RTUSBWriteMACRegister(ad, FCE_SKIP_FS, 0x03, FALSE);
+		run_write(sc, FCE_SKIP_FS, 0x03);
+
+
+
 
 		write_max = UPLOAD_FW_UNIT - HDR_LEN - USB_END_PADDING;
 
