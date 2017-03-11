@@ -1298,8 +1298,6 @@ run_load_mt_microcode(struct run_softc *sc)
 	/* write microcode image */
 	if (sc->sc_flags & RUN_FLAG_FWLOAD_NEEDED) {
 
-		device_printf(sc->sc_dev, "writing ilm\n");
-
 #define USB_END_PADDING 4
 #define UPLOAD_FW_UNIT  14592
 #define HDR_LEN         32
@@ -1318,47 +1316,24 @@ run_load_mt_microcode(struct run_softc *sc)
 		uint16_t high;
 		uint32_t mac_value = 0;
 
-//		cur_len = 0x40;      // 64
-
 		/* Enable FCE */
-//		RTUSBWriteMACRegister(ad, FCE_PSE_CTRL, 0x01, FALSE);
-
-		/* FCE tx_fs_base_ptr */
-//		RTUSBWriteMACRegister(ad, TX_CPU_PORT_FROM_FCE_BASE_PTR, 0x400230, FALSE);
-
-		/* FCE tx_fs_max_cnt */
-//		RTUSBWriteMACRegister(ad, TX_CPU_PORT_FROM_FCE_MAX_COUNT, 0x01, FALSE);
-
-		/* FCE pdma enable */
-//		RTUSBWriteMACRegister(ad, FCE_PDMA_GLOBAL_CONF, 0x44, FALSE);
-
-		/* FCE skip_fs_en */
-//		RTUSBWriteMACRegister(ad, FCE_SKIP_FS, 0x03, FALSE);
-
-
-		/* Enable FCE */
-//		RTUSBWriteMACRegister(ad, FCE_PSE_CTRL, 0x01, FALSE);
 		run_write(sc, FCE_PSE_CTRL, 0x01);
 
 		/* FCE tx_fs_base_ptr */
-//		RTUSBWriteMACRegister(ad, TX_CPU_PORT_FROM_FCE_BASE_PTR, 0x400230, FALSE);
 		run_write(sc, TX_CPU_PORT_FROM_FCE_BASE_PTR, 0x400230);
 
 		/* FCE tx_fs_max_cnt */
-//		RTUSBWriteMACRegister(ad, TX_CPU_PORT_FROM_FCE_MAX_COUNT, 0x01, FALSE);
-		run_write(sc, TX_CPU_PORT_FROM_FCE_MAX_COUNT, 0x1);
+		run_write(sc, TX_CPU_PORT_FROM_FCE_MAX_COUNT, 0x01);
 
 		/* FCE pdma enable */
-//		RTUSBWriteMACRegister(ad, FCE_PDMA_GLOBAL_CONF, 0x44, FALSE);
 		run_write(sc, FCE_PDMA_GLOBAL_CONF, 0x44);
 
 		/* FCE skip_fs_en */
-//		RTUSBWriteMACRegister(ad, FCE_SKIP_FS, 0x03, FALSE);
 		run_write(sc, FCE_SKIP_FS, 0x03);
 
+//		cur_len = 0x40;      // 64
 
-
-
+		device_printf(sc->sc_dev, "writing ilm\n");
 		write_max = UPLOAD_FW_UNIT - HDR_LEN - USB_END_PADDING;
 
 		do {
@@ -1393,7 +1368,6 @@ run_load_mt_microcode(struct run_softc *sc)
 			cur_len += write_size;
 
 			run_write_region_1(sc, RT2870_FW_BASE, base, write_size);
-
 
 			run_read(sc, TX_CPU_PORT_FROM_FCE_CPU_DESC_INDEX, &mac_value);
 			run_write(sc, TX_CPU_PORT_FROM_FCE_CPU_DESC_INDEX, mac_value+1);
@@ -1434,8 +1408,8 @@ run_load_mt_microcode(struct run_softc *sc)
 
 			run_write(sc, low, 0x234);
 			run_write(sc, high, 0x236);
-			run_write_region_1(sc, RT2870_FW_BASE, base, write_size);
 
+			run_write_region_1(sc, RT2870_FW_BASE, base, write_size);
 
 			run_read(sc, TX_CPU_PORT_FROM_FCE_CPU_DESC_INDEX, &mac_value);
 			run_write(sc, TX_CPU_PORT_FROM_FCE_CPU_DESC_INDEX, mac_value+1);
