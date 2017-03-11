@@ -1558,16 +1558,18 @@ run_write_region_1(struct run_softc *sc, uint16_t reg, const uint8_t *buf,
 {
 	usb_device_request_t req;
 	int error = 0;
+
 	req.bmRequestType = UT_WRITE_VENDOR_DEVICE;
 	req.bRequest = RT2870_WRITE_REGION_1;
 	USETW(req.wValue, 0);
 	USETW(req.wIndex, reg);
-	USETW(req.wLength, delta);
+	USETW(req.wLength, len);
 	error = run_do_request(sc, &req, __DECONST(uint8_t *, buf));
+
 	if (error != 0)
 		break;
 	return (error);
-#if 1
+#if 0
 	int i, error = 0;
 	/*
 	 * NB: the WRITE_REGION_1 command is not stable on RT2860.
