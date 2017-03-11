@@ -1543,6 +1543,26 @@ run_write_2(struct run_softc *sc, uint16_t reg, uint16_t val)
 }
 
 static int
+run_write_4(struct run_softc *sc, uint16_t reg2, uint16_t val1, uint16_t val2)
+{
+	usb_device_request_t req[2];
+
+	req[0].bmRequestType = UT_WRITE_VENDOR_DEVICE;
+	req[0].bRequest = RT2870_WRITE_2;
+	USETW(req[0].wValue, val1);
+	USETW(req[0].wIndex, reg);
+	USETW(req[0].wLength, 2);
+
+	req[1].bmRequestType = UT_WRITE_VENDOR_DEVICE;
+	req[1].bRequest = RT2870_WRITE_2;
+	USETW(req[1].wValue, val2);
+	USETW(req[1].wIndex, reg);
+	USETW(req[1].wLength, 2);
+
+	return (run_do_request(sc, &req, NULL));
+}
+
+static int
 run_write(struct run_softc *sc, uint16_t reg, uint32_t val)
 {
 	int error;
@@ -1556,18 +1576,16 @@ static int
 run_write_region_1(struct run_softc *sc, uint16_t reg, const uint8_t *buf,
     int len)
 {
-	usb_device_request_t req;
-	int error = 0;
+	int i, error = 0;
+	/*
+	 * NB: the WRITE_REGION_1 command is not stable on RT2860.
+	 * We thus issue multiple WRITE_4 commands instead.
+	 */
+	KASSERT((len % 4) == 0, ("run_write_region_1: Data not a aligned to 4 bytes.\n"));
 
-	req.bmRequestType = UT_WRITE_VENDOR_DEVICE;
-	req.bRequest = RT2870_WRITE_REGION_1;
-	USETW(req.wValue, 0);
-	USETW(req.wIndex, reg);
-	USETW(req.wLength, len);
-	error = run_do_request(sc, &req, __DECONST(uint8_t *, buf));
-
-	if (error != 0)
-		break;
+	for (i = 0; i < len && error == 0; i += 4)
+		error = run_write_4(sc, reg + i, buf[i] | buf[i + 1] << 8, 
+			buf[i+2] | buf[i + 3] << 8);
 	return (error);
 #if 0
 	int i, error = 0;
