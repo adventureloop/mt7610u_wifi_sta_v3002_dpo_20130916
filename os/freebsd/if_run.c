@@ -1556,7 +1556,7 @@ static int
 run_write_region_1(struct run_softc *sc, uint16_t reg, const uint8_t *buf,
     int len)
 {
-#if 1
+#if 0
 	int i, error = 0;
 	/*
 	 * NB: the WRITE_REGION_1 command is not stable on RT2860.
