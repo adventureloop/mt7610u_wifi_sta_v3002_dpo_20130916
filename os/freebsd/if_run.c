@@ -1308,6 +1308,7 @@ run_load_mt_microcode(struct run_softc *sc)
 #define TX_CPU_PORT_FROM_FCE_CPU_DESC_INDEX 0x09A8
 #define TX_CPU_PORT_FROM_FCE_BASE_PTR 0x09A0
 #define TX_CPU_PORT_FROM_FCE_MAX_COUNT 0x09A4
+#define SEMAPHORE 0x07B0
  
 		uint32_t cur_len = 0;
 		uint32_t write_size = 0;
@@ -1315,6 +1316,20 @@ run_load_mt_microcode(struct run_softc *sc)
 		uint16_t low;
 		uint16_t high;
 		uint32_t mac_value = 0;
+
+		uint8_t semaphore_tries = 0;
+	
+		while (semaphore_tries++ < 100) {
+			run_read(sc, SEMAPHORE, &mac_value);
+			if ((mac_value & 0x01) == 0)
+				break;
+			run_delay(1ms);
+		}
+
+		if (semaphore_tries >= 100) {
+			device_printf(sc->sc_dev, "getting semaphore failed\n");
+			goto fail;
+		}
 
 		/* Enable FCE */
 		run_write(sc, FCE_PSE_CTRL, 0x01);
