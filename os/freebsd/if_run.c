@@ -1389,6 +1389,7 @@ run_load_mt_microcode(struct run_softc *sc)
 			}
 
 			device_printf(sc->sc_dev, "ilm write_size: %d\n", write_size);
+			device_printf(sc->sc_dev, "ilm write start: %lld\n", time_second);
 
 			low = (cur_len & 0xFFFF);
 			high = (cur_len & 0xFFFF0000) >> 16;
@@ -1415,6 +1416,7 @@ run_load_mt_microcode(struct run_softc *sc)
 			run_read(sc, TX_CPU_PORT_FROM_FCE_CPU_DESC_INDEX, &mac_value);
 			run_write(sc, TX_CPU_PORT_FROM_FCE_CPU_DESC_INDEX, mac_value+1);
 
+			device_printf(sc->sc_dev, "ilm write stop: %lld\n", time_second);
 			run_delay(sc, 5);
 		} while(write_size > 0);
 
