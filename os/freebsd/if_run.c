@@ -1344,8 +1344,8 @@ run_load_mt_microcode(struct run_softc *sc)
 		 * that first and then do things right if this ever works.
 		 * //USB_CFG_WRITE(ad, 0x00c00020);
 		 */
-		//uint32_t usbdmaval = 0x00c00020;
-		uint32_t usbdmaval = 0x2000c000;
+		uint32_t usbdmaval = 0x00c00020;
+		//uint32_t usbdmaval = 0x2000c000;
 
 		run_write_region_1(sc, USB_DMA_CFG, (uint8_t *)&usbdmaval, 4);  
 
@@ -1408,7 +1408,9 @@ run_load_mt_microcode(struct run_softc *sc)
 
 			cur_len += write_size;
 
+			device_printf(sc->sc_dev, "run write region start: %lld\n", time_second);
 			run_write_region_1(sc, RT2870_FW_BASE, base, write_size);
+			device_printf(sc->sc_dev, "run write region stop: %lld\n", time_second);
 
 			run_read(sc, TX_CPU_PORT_FROM_FCE_CPU_DESC_INDEX, &mac_value);
 			run_write(sc, TX_CPU_PORT_FROM_FCE_CPU_DESC_INDEX, mac_value+1);
