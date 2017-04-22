@@ -1309,7 +1309,9 @@ run_load_mt_microcode(struct run_softc *sc)
 #define TX_CPU_PORT_FROM_FCE_BASE_PTR 0x09A0
 #define TX_CPU_PORT_FROM_FCE_MAX_COUNT 0x09A4
 #define SEMAPHORE 0x07B0
- 
+#define COM_REG0  0x0730
+#define USB_DMA_CFG 0x0238  
+
 		uint32_t cur_len = 0;
 		uint32_t write_size = 0;
 		uint32_t write_max = 0;
@@ -1328,6 +1330,28 @@ run_load_mt_microcode(struct run_softc *sc)
 
 		if (semaphore_tries >= 100) {
 			device_printf(sc->sc_dev, "getting semaphore failed\n");
+			error = 0;
+			goto fail;
+		}
+		device_printf(sc->sc_dev, "getting semaphore worked, value: %d\n",mac_value);
+
+		/* Its a sektret */
+		run_write(sc, 0x1004, 0x2c);
+
+		set the config bits with run_write_region
+
+		/* 
+		 * Vendor soup has a endianess correct struct for doing this, but there
+		 * is a comment which shows a raw value which might just work. Lets try
+		 * that first and then do things right if this ever works.
+		 * //USB_CFG_WRITE(ad, 0x00c00020);
+		 */
+
+		run_write_region_1(sc, USB_DMA_CFG, 0x00c00020, 4);  
+
+		run_read(sc, COM_REG0, &mac_value);
+		if ((mac_value & 0x01) == 0x01) {
+			device_printf(sc->sc_dev, "mcu is not ready\n");
 			error = 0;
 			goto fail;
 		}
