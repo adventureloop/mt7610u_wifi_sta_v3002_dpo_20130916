@@ -1323,7 +1323,7 @@ run_load_mt_microcode(struct run_softc *sc)
 			run_read(sc, SEMAPHORE, &mac_value);
 			if ((mac_value & 0x01) == 0)
 				break;
-			run_delay(1ms);
+			run_delay(sc, 5);
 		}
 
 		if (semaphore_tries >= 100) {
