@@ -1540,9 +1540,12 @@ run_do_request(struct run_softc *sc,
 			break;
 		DPRINTFN(1, "Control request failed, %s (retrying)\n",
 		    usbd_errstr(err));
-		device_printf(sc->sc_dev, "Control request failed, %s (retrying)\n",
-		    usbd_errstr(err));
 		run_delay(sc, 10);
+	}
+	if (err != 0) {
+		device_printf(sc->sc_dev, "Control request failed, %s \n",
+			usbd_errstr(err));
+		device_printf(sc->sc_dev, "Control request error val: %d tries: %d\n",err, ntries);
 	}
 	return (err);
 }
