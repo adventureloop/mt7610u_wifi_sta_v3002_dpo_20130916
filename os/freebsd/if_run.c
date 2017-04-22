@@ -1344,7 +1344,8 @@ run_load_mt_microcode(struct run_softc *sc)
 		 * that first and then do things right if this ever works.
 		 * //USB_CFG_WRITE(ad, 0x00c00020);
 		 */
-		uint32_t usbdmaval = 0x00c00020;
+		//uint32_t usbdmaval = 0x00c00020;
+		uint32_t usbdmaval = 0x2000c000;
 
 		run_write_region_1(sc, USB_DMA_CFG, (uint8_t *)&usbdmaval, 4);  
 
@@ -1354,6 +1355,7 @@ run_load_mt_microcode(struct run_softc *sc)
 			error = 0;
 			goto fail;
 		}
+		device_printf(sc->sc_dev, "mcu says it is ready\n");
 
 		/* Enable FCE */
 		run_write(sc, FCE_PSE_CTRL, 0x01);
