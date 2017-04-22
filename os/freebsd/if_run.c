@@ -1328,6 +1328,7 @@ run_load_mt_microcode(struct run_softc *sc)
 
 		if (semaphore_tries >= 100) {
 			device_printf(sc->sc_dev, "getting semaphore failed\n");
+			error = 0;
 			goto fail;
 		}
 
