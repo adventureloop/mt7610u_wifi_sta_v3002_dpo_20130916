@@ -1401,7 +1401,7 @@ run_load_mt_microcode(struct run_softc *sc)
 			while(write_size%4 != 0)
 				write_size++;
 
-			low = ((write_size << 16) & 0xFFFF);
+			low = ((write_size << 16) & 0xFFFF);	//I can't see why this isn't always 0
 			high = ((write_size << 16) & 0xFFFF0000) >> 16;
 
 			run_write(sc, low, 0x234);
@@ -1627,6 +1627,7 @@ run_write_region_1(struct run_softc *sc, uint16_t reg, const uint8_t *buf,
 
 	req.bmRequestType = UT_WRITE_VENDOR_DEVICE;
 	req.bRequest = RT2870_WRITE_REGION_1;
+	req.bRequest = 0x08;
 	USETW(req.wValue, 0);
 	USETW(req.wIndex, reg);
 	USETW(req.wLength, len);
