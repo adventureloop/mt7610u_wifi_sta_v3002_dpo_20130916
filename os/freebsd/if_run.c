@@ -1345,7 +1345,7 @@ run_load_mt_microcode(struct run_softc *sc)
 		 * that first and then do things right if this ever works.
 		 * //USB_CFG_WRITE(ad, 0x00c00020);
 		 */
-		uint32_t usbdmaval = 0x00c00020;
+		//uint32_t usbdmaval = 0x00c00020;
 		//uint32_t usbdmaval = 0x2000c000;
 		
 		uint16_t usbdhigh = 0x00c0;
