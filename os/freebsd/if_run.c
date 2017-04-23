@@ -1346,8 +1346,8 @@ run_load_mt_microcode(struct run_softc *sc)
 		 */
 		uint32_t usbdmaval = 0x00c00020;
 		//uint32_t usbdmaval = 0x2000c000;
-
-		run_write_region_1(sc, USB_DMA_CFG, (uint8_t *)&usbdmaval, 4);  
+		//run_write_region_1(sc, USB_DMA_CFG, (uint8_t *)&usbdmaval, 4);  
+		run_write_4(sc, USB_DMA_CFG, (uint16_t)usbdmaval, (uint16_t) usbdmaval >> 16);
 
 		run_read(sc, COM_REG0, &mac_value);
 		if ((mac_value & 0x01) == 0x01) {
