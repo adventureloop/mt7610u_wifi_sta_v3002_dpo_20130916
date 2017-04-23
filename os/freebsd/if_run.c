@@ -369,6 +369,7 @@ static usb_error_t run_do_request(struct run_softc *,
 		    struct usb_device_request *, void *);
 static int	run_read(struct run_softc *, uint16_t, uint32_t *);
 static int	run_read_region_1(struct run_softc *, uint16_t, uint8_t *, int);
+static int  run_write_4(struct run_softc *, uint16_t, uint16_t, uint16_t);
 static int	run_write_2(struct run_softc *, uint16_t, uint16_t);
 static int	run_write(struct run_softc *, uint16_t, uint32_t);
 static int	run_write_region_1(struct run_softc *, uint16_t,
