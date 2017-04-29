@@ -1354,7 +1354,9 @@ run_load_mt_microcode(struct run_softc *sc)
 		//run_write_region_1(sc, USB_DMA_CFG, (uint8_t *)&usbdmaval, 4);  
 		//device_printf(sc->sc_dev, "writing usb dma cfg: %d %d\n", usbdlow, usbdhigh);
 		device_printf(sc->sc_dev, "writing usb dma cfg: \n");
-		run_write_4(sc, USB_DMA_CFG, 0x0020, 0x00c0);
+	//	run_write_4(sc, USB_DMA_CFG, 0x0020, 0x00c0);
+		run_write_2(sc, USB_DMA_CFG, 0x0020);
+		run_write_2(sc, USB_DMA_CFG, 0x00c0);
 
 		run_read(sc, COM_REG0, &mac_value);
 		if ((mac_value & 0x01) == 0x01) {
