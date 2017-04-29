@@ -1353,15 +1353,25 @@ run_load_mt_microcode(struct run_softc *sc)
 
 		//run_write_region_1(sc, USB_DMA_CFG, (uint8_t *)&usbdmaval, 4);  
 		//device_printf(sc->sc_dev, "writing usb dma cfg: %d %d\n", usbdlow, usbdhigh);
-		device_printf(sc->sc_dev, "writing usb dma cfg: \n");
 		//run_write_2(sc, USB_DMA_CFG, 0x0020);
 		//run_write_2(sc, USB_DMA_CFG, 0x00c0);
 		//run_write_4(sc, USB_DMA_CFG, 0x0020, 0x00c0);
 
+
+		device_printf(sc->sc_dev, "writing usb dma cfg: \n");
 		/* enable Rx bulk aggregation (set timeout and limit) */           
 		uint32_t tmp = RT2860_USB_TX_EN | RT2860_USB_RX_EN | RT2860_USB_RX_AGG_EN | 
 			RT2860_USB_RX_AGG_TO(128) | RT2860_USB_RX_AGG_LMT(2);          
+
+		run_read(sc, USB_DMA_CFG, &tmp);
+		device_printf(sc->sc_dev, "\treads as: %x\n", tmp);
+
+		tmp = 0x2000c000;
+		device_printf(sc->sc_dev, "\twriting as: %x\n", tmp);
 		run_write(sc, USB_DMA_CFG, tmp);                            
+
+		run_read(sc, USB_DMA_CFG, &tmp);
+		device_printf(sc->sc_dev, "\treads as: %x\n", tmp);
 			                                                                    
 
 		run_read(sc, COM_REG0, &mac_value);
