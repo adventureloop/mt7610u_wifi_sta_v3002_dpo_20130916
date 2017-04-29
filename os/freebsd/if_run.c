@@ -1366,7 +1366,7 @@ run_load_mt_microcode(struct run_softc *sc)
 		run_read(sc, USB_DMA_CFG, &tmp);
 		device_printf(sc->sc_dev, "\treads as: %x\n", tmp);
 
-		tmp = 0x2000c000;
+		tmp = 0x00c00020;
 		device_printf(sc->sc_dev, "\twriting as: %x\n", tmp);
 		run_write(sc, USB_DMA_CFG, tmp);                            
 
