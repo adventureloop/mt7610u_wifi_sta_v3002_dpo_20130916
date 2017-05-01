@@ -3394,7 +3394,8 @@ run_bulk_tx_callbackN(struct usb_xfer *xfer, usb_error_t error, u_int index)
 
 	switch (USB_GET_STATE(xfer)) {
 	case USB_ST_TRANSFERRED:
-		DPRINTFN(11, "transfer complete: %d "
+		//DPRINTFN(11, "transfer complete: %d "
+		DPRINTFN(0, "transfer complete: %d "
 		    "bytes @ index %d\n", actlen, index);
 
 		data = usbd_xfer_get_priv(xfer);
@@ -3450,7 +3451,8 @@ tr_setup:
 			ieee80211_radiotap_tx(vap, m);
 		}
 
-		DPRINTFN(11, "sending frame len=%u/%u  @ index %d\n",
+		//DPRINTFN(11, "sending frame len=%u/%u  @ index %d\n",
+		DPRINTFN(0, "sending frame len=%u/%u  @ index %d\n",
 		    m->m_pkthdr.len, size, index);
 
 		usbd_xfer_set_frame_len(xfer, 0, size);
