@@ -3390,6 +3390,9 @@ run_bulk_tx_callbackN(struct usb_xfer *xfer, usb_error_t error, u_int index)
 	int actlen;
 	int sumlen;
 
+	DPRINTF("run_bulk_tx_callback");
+	
+
 	usbd_xfer_status(xfer, &actlen, &sumlen, NULL, NULL);
 
 	switch (USB_GET_STATE(xfer)) {
