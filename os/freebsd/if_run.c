@@ -1345,24 +1345,12 @@ run_load_mt_microcode(struct run_softc *sc)
 		 * that first and then do things right if this ever works.
 		 * //USB_CFG_WRITE(ad, 0x00c00020);
 		 */
-		//uint32_t usbdmaval = 0x00c00020;
-		//uint32_t usbdmaval = 0x2000c000;
-		
-	//	uint16_t usbdhigh = 0x00c0;
-	//	uint16_t usbdlow = 	0x0020;
-
-		//run_write_region_1(sc, USB_DMA_CFG, (uint8_t *)&usbdmaval, 4);  
-		//device_printf(sc->sc_dev, "writing usb dma cfg: %d %d\n", usbdlow, usbdhigh);
-		//run_write_2(sc, USB_DMA_CFG, 0x0020);
-		//run_write_2(sc, USB_DMA_CFG, 0x00c0);
-		//run_write_4(sc, USB_DMA_CFG, 0x0020, 0x00c0);
-
-
 		device_printf(sc->sc_dev, "writing usb dma cfg: \n");
 		/* enable Rx bulk aggregation (set timeout and limit) */           
 		uint32_t tmp = RT2860_USB_TX_EN | RT2860_USB_RX_EN | RT2860_USB_RX_AGG_EN | 
 			RT2860_USB_RX_AGG_TO(128) | RT2860_USB_RX_AGG_LMT(2);          
-
+		// TODO should be doing this ^^^^^
+	
 		run_read(sc, USB_DMA_CFG, &tmp);
 		device_printf(sc->sc_dev, "\treads as: %x\n", tmp);
 
@@ -1372,7 +1360,6 @@ run_load_mt_microcode(struct run_softc *sc)
 
 		run_read(sc, USB_DMA_CFG, &tmp);
 		device_printf(sc->sc_dev, "\treads as: %x\n", tmp);
-			                                                                    
 
 		run_read(sc, COM_REG0, &mac_value);
 		if ((mac_value & 0x01) == 0x01) {
@@ -3392,7 +3379,6 @@ run_tx_free(struct run_endpoint_queue *pq,
 static void
 run_bulk_tx_callbackN(struct usb_xfer *xfer, usb_error_t error, u_int index)
 {
-#if 0
 	struct run_softc *sc = usbd_xfer_softc(xfer);
 	struct ieee80211com *ic = &sc->sc_ic;
 	struct run_tx_data *data;
@@ -3510,7 +3496,6 @@ tr_setup:
 		}
 		break;
 	}
-#endif
 }
 
 static void
