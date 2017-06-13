@@ -653,8 +653,20 @@ static const struct usb_config run_config[RUN_N_XFER] = {
 	.bufsize = RUN_MAX_RXSZ,
 	.flags = {.pipe_bof = 1,.short_xfer_ok = 1,},
 	.callback = run_bulk_rx_callback,
+    },
+    [RUN_BULK_TX_CMD] = {
+	.type = UE_BULK,
+	.endpoint = UE_ADDR_ANY,
+	.direction = UE_DIR_OUT,
+	.ep_index = 8,
+	.bufsize = RUN_MAX_TXSZ,
+	.flags = {.pipe_bof = 1,.force_short_xfer = 1,.no_pipe_ok = 1,},
+	.callback = run_bulk_cmd_callback,
+	.timeout = 5000,	/* ms */
     }
 };
+
+
 
 #if 0
 static void
@@ -1371,16 +1383,12 @@ run_load_mt_microcode(struct run_softc *sc)
 
 		/* Enable FCE */
 		run_write(sc, FCE_PSE_CTRL, 0x01);
-
 		/* FCE tx_fs_base_ptr */
 		run_write(sc, TX_CPU_PORT_FROM_FCE_BASE_PTR, 0x400230);
-
 		/* FCE tx_fs_max_cnt */
 		run_write(sc, TX_CPU_PORT_FROM_FCE_MAX_COUNT, 0x01);
-
 		/* FCE pdma enable */
 		run_write(sc, FCE_PDMA_GLOBAL_CONF, 0x44);
-
 		/* FCE skip_fs_en */
 		run_write(sc, FCE_SKIP_FS, 0x03);
 
@@ -1424,6 +1432,20 @@ run_load_mt_microcode(struct run_softc *sc)
 			device_printf(sc->sc_dev, "run write region start: %lld\n", time_second);
 			run_write_region_1(sc, RT2870_FW_BASE, base, write_size);
 			device_printf(sc->sc_dev, "run write region stop: %lld\n", time_second);
+
+//bulk transfer
+			cmd->odata = odata;
+			cmd->odatalen = odatalen;
+			cmd->buflen = xferlen;
+
+			/* Queue the command to the endpoint */
+//msleep
+			STAILQ_INSERT_TAIL(&sc->sc_cmd_pending, cmd, next_cmd);
+			usbd_transfer_start(sc->sc_xfer[OTUS_BULK_CMD]);
+
+			/* Sleep on the command; wait for it to complete */
+			error = msleep(cmd, &sc->sc_mtx, PCATCH, "mtucmd", hz)
+
 
 			run_read(sc, TX_CPU_PORT_FROM_FCE_CPU_DESC_INDEX, &mac_value);
 			run_write(sc, TX_CPU_PORT_FROM_FCE_CPU_DESC_INDEX, mac_value+1);
@@ -1522,6 +1544,147 @@ fail:
 	firmware_put(fw, FIRMWARE_UNLOAD);
 	return (error);
 }
+
+static int
+run_load_localmemory(struct run_softc *sc, u_char *data, int datalen, int cur_len)
+{
+	uint16_t low, high;
+
+	low = (cur_len & 0xFFFF);
+	high = (cur_len & 0xFFFF0000) >> 16;
+
+// guess: load datasize
+	run_write(sc, low, 0x230);
+	run_write(sc, high, 0x232);
+
+	//pad write_size out to % 4
+	while(write_size%4 != 0)
+		write_size++;
+
+	low = ((write_size << 16) & 0xFFFF);	//I can't see why this isn't always 0
+	high = ((write_size << 16) & 0xFFFF0000) >> 16;
+
+// guess: load upload size (datasize passed to 4)
+	run_write(sc, low, 0x234);
+	run_write(sc, high, 0x236);
+
+	cur_len += write_size;
+
+	device_printf(sc->sc_dev, "run write region start: %lld\n", time_second);
+	run_write_region_1(sc, RT2870_FW_BASE, base, write_size);
+	device_printf(sc->sc_dev, "run write region stop: %lld\n", time_second);
+
+//bulk transfer
+	cmd->odata = odata;
+	cmd->odatalen = odatalen;
+	cmd->buflen = xferlen;
+
+	/* Queue the command to the endpoint */
+//msleep
+	STAILQ_INSERT_TAIL(&sc->sc_cmd_pending, cmd, next_cmd);
+	usbd_transfer_start(sc->sc_xfer[RUN_MCU_CMD]);
+
+	/* Sleep on the command; wait for it to complete */
+	error = msleep(cmd, &sc->sc_mtx, PCATCH, "mtucmd", hz)
+
+	if (error != 0) {
+		device_printf(sc->sc_dev,
+			"%s: timeout waiting for command 0x%02x reply\n",
+			__func__, code);
+	}
+
+	run_read(sc, TX_CPU_PORT_FROM_FCE_CPU_DESC_INDEX, &mac_value);
+	run_write(sc, TX_CPU_PORT_FROM_FCE_CPU_DESC_INDEX, mac_value+1);
+
+	device_printf(sc->sc_dev, "ilm write stop: %lld\n", time_second);
+	run_delay(sc, 5);
+
+	return datalen;
+}
+
+static void
+run_bulk_cmd_callback(struct usb_xfer *xfer, usb_error_t error)
+{
+{
+    struct run_softc *sc = usbd_xfer_softc(xfer);
+#if 0
+    struct ieee80211com *ic = &sc->sc_ic;
+#endif
+    struct run_tx_cmd *cmd;
+    
+    OTUS_LOCK_ASSERT(sc);
+    
+    switch (USB_GET_STATE(xfer)) {
+    case USB_ST_TRANSFERRED:
+        cmd = STAILQ_FIRST(&sc->sc_cmd_active);
+        if (cmd == NULL)
+            goto tr_setup;
+        OTUS_DPRINTF(sc, OTUS_DEBUG_CMDDONE,
+            "%s: transfer done %p\n", __func__, cmd);
+        STAILQ_REMOVE_HEAD(&sc->sc_cmd_active, next_cmd);
+        run_txcmdeof(xfer, cmd);
+        /* FALLTHROUGH */
+    case USB_ST_SETUP:
+tr_setup:
+        cmd = STAILQ_FIRST(&sc->sc_cmd_pending);
+        if (cmd == NULL) {
+            OTUS_DPRINTF(sc, OTUS_DEBUG_CMD,
+                "%s: empty pending queue sc %p\n", __func__, sc);
+            return;
+        }   
+        STAILQ_REMOVE_HEAD(&sc->sc_cmd_pending, next_cmd);
+        STAILQ_INSERT_TAIL(&sc->sc_cmd_active, cmd, next_cmd);
+        usbd_xfer_set_frame_data(xfer, 0, cmd->buf, cmd->buflen);
+        OTUS_DPRINTF(sc, OTUS_DEBUG_CMD,
+            "%s: submitting transfer %p; buf=%p, buflen=%d\n", __func__, cmd, cmd->buf, cmd->buflen);
+        usbd_transfer_submit(xfer);
+        break;
+    default:
+        cmd = STAILQ_FIRST(&sc->sc_cmd_active);
+        if (cmd != NULL) {
+            STAILQ_REMOVE_HEAD(&sc->sc_cmd_active, next_cmd);
+            run_txcmdeof(xfer, cmd);
+        }   
+        
+        if (error != USB_ERR_CANCELLED) {
+            usbd_xfer_set_stall(xfer);
+            goto tr_setup;
+        }   
+        break;
+    }   
+}
+
+static void
+run_txcmdeof(struct usb_xfer *xfer, struct run_tx_cmd *cmd)
+{
+    struct run_softc *sc = usbd_xfer_softc(xfer);
+
+    RUN_LOCK_ASSERT(sc);
+
+    RUN_DPRINTF(sc, RUN_DEBUG_CMDDONE,
+        "%s: called; data=%p; odata=%p\n",
+        __func__, cmd, cmd->odata);
+
+    /*
+     * Non-response commands still need wakeup so the caller
+     * knows it was submitted and completed OK; response commands should
+     * wait until they're ACKed by the firmware with a response.
+     */
+    if (cmd->odata) {
+        STAILQ_INSERT_TAIL(&sc->sc_cmd_waiting, cmd, next_cmd);
+    } else {
+        wakeup(cmd);
+        run_free_txcmd(sc, cmd);
+    }
+}
+
+static void                                                    
+run_free_txcmd(struct run_softc *sc, struct run_tx_cmd *bf) 
+{                                                              
+                                                               
+    RUN_LOCK_ASSERT(sc);                                      
+    STAILQ_INSERT_TAIL(&sc->sc_cmd_inactive, bf, next_cmd);    
+}                                                              
 
 static int
 run_reset(struct run_softc *sc)
@@ -3390,15 +3553,11 @@ run_bulk_tx_callbackN(struct usb_xfer *xfer, usb_error_t error, u_int index)
 	int actlen;
 	int sumlen;
 
-	DPRINTF("run_bulk_tx_callback");
-	
-
 	usbd_xfer_status(xfer, &actlen, &sumlen, NULL, NULL);
 
 	switch (USB_GET_STATE(xfer)) {
 	case USB_ST_TRANSFERRED:
-		//DPRINTFN(11, "transfer complete: %d "
-		DPRINTFN(0, "transfer complete: %d "
+		DPRINTFN(11, "transfer complete: %d "
 		    "bytes @ index %d\n", actlen, index);
 
 		data = usbd_xfer_get_priv(xfer);
@@ -3454,8 +3613,7 @@ tr_setup:
 			ieee80211_radiotap_tx(vap, m);
 		}
 
-		//DPRINTFN(11, "sending frame len=%u/%u  @ index %d\n",
-		DPRINTFN(0, "sending frame len=%u/%u  @ index %d\n",
+		DPRINTFN(11, "sending frame len=%u/%u  @ index %d\n",
 		    m->m_pkthdr.len, size, index);
 
 		usbd_xfer_set_frame_len(xfer, 0, size);
