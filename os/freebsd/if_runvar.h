@@ -146,6 +146,7 @@ enum {
 	RUN_BULK_TX_HCCA,
 	RUN_BULK_TX_PRIO,
 	RUN_BULK_RX,
+	RUN_BULK_CMD,		/* firmware bulk transfers */
 	RUN_N_XFER,
 };
 
