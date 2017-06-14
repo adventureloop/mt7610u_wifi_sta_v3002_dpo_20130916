@@ -1669,4 +1669,14 @@ union run_stats {
 	} tx;
 } __aligned(4);
 
+/* Firmware commands */
+struct run_tx_cmd { 
+    uint8_t         *buf;  
+    uint16_t        buflen;              
+    void            *odata;              
+    uint16_t        odatalen;            
+    uint16_t        token;               
+    STAILQ_ENTRY(run_tx_cmd)   next_cmd;
+};                                       
+
 #endif	/* _IF_RUNREG_H_ */
