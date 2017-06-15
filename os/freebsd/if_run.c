@@ -1274,6 +1274,7 @@ run_load_mt_microcode(struct run_softc *sc)
 	int ntries, error;
 
 	struct mtfw_hdr fw_hdr;
+	struct run_tx_cmd *cmd;
 	device_printf(sc->sc_dev, "loading MT microcode\n");
 
 	RUN_UNLOCK(sc);
@@ -1336,7 +1337,6 @@ run_load_mt_microcode(struct run_softc *sc)
 
 		uint8_t semaphore_tries = 0;
 
-		run_tx_cmd *cmd;	
 	
 		while (semaphore_tries++ < 100) {
 			run_read(sc, SEMAPHORE, &mac_value);
@@ -1438,17 +1438,9 @@ run_load_mt_microcode(struct run_softc *sc)
 			device_printf(sc->sc_dev, "run write region stop: %lld\n", time_second);
 
 //bulk transfer
-			cmd->odata = odata;
-			cmd->odatalen = odatalen;
-			cmd->buflen = xferlen;
-
-			/* Queue the command to the endpoint */
-			STAILQ_INSERT_TAIL(&sc->sc_cmd_pending, cmd, next_cmd);
-			usbd_transfer_start(sc->sc_xfer[RUN_BULK_CMD]);
-
-			/* Sleep on the command; wait for it to complete */
-			error = msleep(cmd, &sc->sc_mtx, PCATCH, "mtucmd", hz)
-
+			error = run_cmd(sc, RUN_SOMETHING, base, write_size, NULL, 0);
+			if (error) {
+			}
 
 			run_read(sc, TX_CPU_PORT_FROM_FCE_CPU_DESC_INDEX, &mac_value);
 			run_write(sc, TX_CPU_PORT_FROM_FCE_CPU_DESC_INDEX, mac_value+1);
@@ -1548,70 +1540,74 @@ fail:
 	return (error);
 }
 
-static int
-run_load_localmemory(struct run_softc *sc, u_char *data, int datalen, int cur_len)
-{
-	uint16_t low, high;
-	uint32_t cur_len = 0;   
-	uint32_t write_size = 0;
-	uint32_t write_max = 0; 
-	uint32_t mac_value = 0; 
+int
+run_cmd(struct run_softc *sc, uint8_t code, const void *idata, int ilen,
+    void *odata, int odatalen)
+{   
+    struct run_tx_cmd *cmd;
+    struct ar_cmd_hdr *hdr;
+    int xferlen, error;
+    
+    RUN_LOCK_ASSERT(sc);
+    
+    /* Always bulk-out a multiple of 4 bytes. */
+    xferlen = (sizeof (*hdr) + ilen + 3) & ~3;
+    if (xferlen > RUN_MAX_TXCMDSZ) {
+        device_printf(sc->sc_dev, "%s: command (0x%02x) size (%d) > %d\n",
+            __func__,
+            code,
+            xferlen,
+            RUN_MAX_TXCMDSZ);
+        return (EIO);
+    }
+    
+    cmd = run_get_txcmd(sc);
+    if (cmd == NULL) {
+        device_printf(sc->sc_dev, "%s: failed to get buf\n",
+            __func__);
+        return (EIO);
+    }
+    
+    hdr = (struct ar_cmd_hdr *)cmd->buf;
+    hdr->code  = code;
+    hdr->len   = ilen;
+    hdr->token = ++sc->token;   /* Don't care about endianness. */
+    cmd->token = hdr->token;
+    /* XXX TODO: check max cmd length? */
+    memcpy((uint8_t *)&hdr[1], idata, ilen);
+    
+    RUN_DPRINTF(sc, RUN_DEBUG_CMD,
+        "%s: sending command code=0x%02x len=%d token=%d\n",
+        __func__, code, ilen, hdr->token);
+    
+    cmd->odata = odata;
+    cmd->odatalen = odatalen;
+    cmd->buflen = xferlen;
+    
+    /* Queue the command to the endpoint */ 
+    STAILQ_INSERT_TAIL(&sc->sc_cmd_pending, cmd, next_cmd);
+    usbd_transfer_start(sc->sc_xfer[RUN_BULK_CMD]);
+    
+    /* Sleep on the command; wait for it to complete */ 
+    error = msleep(cmd, &sc->sc_mtx, PCATCH, "runcmd", hz);
 
-	low = (cur_len & 0xFFFF);
-	high = (cur_len & 0xFFFF0000) >> 16;
-
-// guess: load datasize
-	run_write(sc, low, 0x230);
-	run_write(sc, high, 0x232);
-
-	//pad write_size out to % 4
-	while(write_size%4 != 0)
-		write_size++;
-
-	low = ((write_size << 16) & 0xFFFF);	//I can't see why this isn't always 0
-	high = ((write_size << 16) & 0xFFFF0000) >> 16;
-
-// guess: load upload size (datasize passed to 4)
-	run_write(sc, low, 0x234);
-	run_write(sc, high, 0x236);
-
-	cur_len += write_size;
-
-	device_printf(sc->sc_dev, "run write region start: %lld\n", time_second);
-	run_write_region_1(sc, RT2870_FW_BASE, base, write_size);
-	device_printf(sc->sc_dev, "run write region stop: %lld\n", time_second);
-
-//bulk transfer
-	cmd->odata = odata;
-	cmd->odatalen = odatalen;
-	cmd->buflen = xferlen;
-
-	/* Queue the command to the endpoint */
-//msleep
-	STAILQ_INSERT_TAIL(&sc->sc_cmd_pending, cmd, next_cmd);
-	usbd_transfer_start(sc->sc_xfer[RUN_MCU_CMD]);
-
-	/* Sleep on the command; wait for it to complete */
-	error = msleep(cmd, &sc->sc_mtx, PCATCH, "mtucmd", hz)
-
-	if (error != 0) {
-		device_printf(sc->sc_dev,
-			"%s: timeout waiting for command 0x%02x reply\n",
-			__func__, code);
-	}
-
-	run_read(sc, TX_CPU_PORT_FROM_FCE_CPU_DESC_INDEX, &mac_value);
-	run_write(sc, TX_CPU_PORT_FROM_FCE_CPU_DESC_INDEX, mac_value+1);
-
-	device_printf(sc->sc_dev, "ilm write stop: %lld\n", time_second);
-	run_delay(sc, 5);
-
-	return datalen;
+    /*
+     * At this point we don't own cmd any longer; it'll be
+     * freed by the cmd bulk path or the RX notification
+     * path.  If the data is made available then it'll be copied
+     * to the caller.  All that is left to do is communicate
+     * status back to the caller.
+     */
+    if (error != 0) {
+        device_printf(sc->sc_dev,
+            "%s: timeout waiting for command 0x%02x reply\n",
+            __func__, code);
+    }       
+    return error;
 }
 
 static void
 run_bulk_cmd_callback(struct usb_xfer *xfer, usb_error_t error)
-{
 {
     struct run_softc *sc = usbd_xfer_softc(xfer);
     struct run_tx_cmd *cmd;
