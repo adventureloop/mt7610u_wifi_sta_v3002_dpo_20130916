@@ -348,6 +348,7 @@ static usb_callback_t	run_bulk_tx_callback4;
 static usb_callback_t	run_bulk_tx_callback5;
 static usb_callback_t   run_bulk_cmd_callback;
 //static void run_bulk_cmd_callback(struct usb_xfer *, usb_error_t );
+int run_cmd(struct run_softc *, const void *, int , void *, int );
 
 static void	run_autoinst(void *, struct usb_device *,
 		    struct usb_attach_arg *);
@@ -1438,7 +1439,7 @@ run_load_mt_microcode(struct run_softc *sc)
 			device_printf(sc->sc_dev, "run write region stop: %lld\n", time_second);
 
 //bulk transfer
-			error = run_cmd(sc, RUN_SOMETHING, base, write_size, NULL, 0);
+			error = run_cmd(sc, base, write_size, NULL, 0);
 			if (error) {
 			}
 
@@ -1540,22 +1541,23 @@ fail:
 	return (error);
 }
 
+#define RUN_MAX_TXCMDSZ 14592
+
 int
-run_cmd(struct run_softc *sc, uint8_t code, const void *idata, int ilen,
-    void *odata, int odatalen)
+run_cmd(struct run_softc *sc, const void *idata, int ilen, 
+	void *odata, int odatalen)
 {   
     struct run_tx_cmd *cmd;
     struct ar_cmd_hdr *hdr;
     int xferlen, error;
     
-    RUN_LOCK_ASSERT(sc);
+	RUN_LOCK_ASSERT(sc, MA_OWNED);
     
     /* Always bulk-out a multiple of 4 bytes. */
     xferlen = (sizeof (*hdr) + ilen + 3) & ~3;
     if (xferlen > RUN_MAX_TXCMDSZ) {
-        device_printf(sc->sc_dev, "%s: command (0x%02x) size (%d) > %d\n",
+        device_printf(sc->sc_dev, "%s: command size (%d) > %d\n",
             __func__,
-            code,
             xferlen,
             RUN_MAX_TXCMDSZ);
         return (EIO);
@@ -1569,7 +1571,6 @@ run_cmd(struct run_softc *sc, uint8_t code, const void *idata, int ilen,
     }
     
     hdr = (struct ar_cmd_hdr *)cmd->buf;
-    hdr->code  = code;
     hdr->len   = ilen;
     hdr->token = ++sc->token;   /* Don't care about endianness. */
     cmd->token = hdr->token;
@@ -1577,8 +1578,8 @@ run_cmd(struct run_softc *sc, uint8_t code, const void *idata, int ilen,
     memcpy((uint8_t *)&hdr[1], idata, ilen);
     
     RUN_DPRINTF(sc, RUN_DEBUG_CMD,
-        "%s: sending command code=0x%02x len=%d token=%d\n",
-        __func__, code, ilen, hdr->token);
+        "%s: sending command len=%d token=%d\n",
+        __func__, ilen, hdr->token);
     
     cmd->odata = odata;
     cmd->odatalen = odatalen;
@@ -1600,8 +1601,8 @@ run_cmd(struct run_softc *sc, uint8_t code, const void *idata, int ilen,
      */
     if (error != 0) {
         device_printf(sc->sc_dev,
-            "%s: timeout waiting for command 0x%02x reply\n",
-            __func__, code);
+            "%s: timeout waiting for command reply\n",
+            __func__);
     }       
     return error;
 }
@@ -1612,7 +1613,7 @@ run_bulk_cmd_callback(struct usb_xfer *xfer, usb_error_t error)
     struct run_softc *sc = usbd_xfer_softc(xfer);
     struct run_tx_cmd *cmd;
     
-    RUN_LOCK_ASSERT(sc);
+	RUN_LOCK_ASSERT(sc, MA_OWNED);
     
     switch (USB_GET_STATE(xfer)) {
     case USB_ST_TRANSFERRED:
@@ -1659,7 +1660,7 @@ run_txcmdeof(struct usb_xfer *xfer, struct run_tx_cmd *cmd)
 {
     struct run_softc *sc = usbd_xfer_softc(xfer);
 
-    RUN_LOCK_ASSERT(sc);
+	RUN_LOCK_ASSERT(sc, MA_OWNED);
 
     RUN_DPRINTF(sc, RUN_DEBUG_CMDDONE,
         "%s: called; data=%p; odata=%p\n",
@@ -1682,7 +1683,7 @@ static void
 run_free_txcmd(struct run_softc *sc, struct run_tx_cmd *bf) 
 {                                                              
                                                                
-    RUN_LOCK_ASSERT(sc);                                      
+	RUN_LOCK_ASSERT(sc, MA_OWNED);
     STAILQ_INSERT_TAIL(&sc->sc_cmd_inactive, bf, next_cmd);    
 }                                                              
 
@@ -1704,7 +1705,7 @@ run_get_txcmd(struct run_softc *sc)
 {
     struct run_tx_cmd *bf;
 
-    RUN_LOCK_ASSERT(sc);
+	RUN_LOCK_ASSERT(sc, MA_OWNED);
 
     bf = _run_get_txcmd(sc);
     if (bf == NULL) {
