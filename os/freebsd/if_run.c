@@ -349,10 +349,9 @@ static usb_callback_t	run_bulk_tx_callback5;
 static usb_callback_t   run_bulk_cmd_callback;
 //static void run_bulk_cmd_callback(struct usb_xfer *, usb_error_t );
 int run_cmd(struct run_softc *, const void *, int , void *, int );
-static struct otus_tx_cmd *_otus_get_txcmd(struct otus_softc *);
-static struct otus_tx_cmd *otus_get_txcmd(struct otus_softc *);
-static void otus_free_txcmd(struct otus_softc *, struct otus_tx_cmd *);
-
+static struct run_tx_cmd *_run_get_txcmd(struct run_softc *);
+static struct run_tx_cmd *run_get_txcmd(struct run_softc *);
+static void run_free_txcmd(struct run_softc *, struct run_tx_cmd *);
 
 static void	run_autoinst(void *, struct usb_device *,
 		    struct usb_attach_arg *);
@@ -1580,11 +1579,11 @@ run_cmd(struct run_softc *sc, const void *idata, int ilen,
     cmd->token = hdr->token;
     /* XXX TODO: check max cmd length? */
     memcpy((uint8_t *)&hdr[1], idata, ilen);
-    
+   /* 
     RUN_DPRINTF(sc, RUN_DEBUG_CMD,
         "%s: sending command len=%d token=%d\n",
         __func__, ilen, hdr->token);
-    
+   */ 
     cmd->odata = odata;
     cmd->odatalen = odatalen;
     cmd->buflen = xferlen;
@@ -1624,24 +1623,26 @@ run_bulk_cmd_callback(struct usb_xfer *xfer, usb_error_t error)
         cmd = STAILQ_FIRST(&sc->sc_cmd_active);
         if (cmd == NULL)
             goto tr_setup;
+/*
         RUN_DPRINTF(sc, RUN_DEBUG_CMDDONE,
             "%s: transfer done %p\n", __func__, cmd);
         STAILQ_REMOVE_HEAD(&sc->sc_cmd_active, next_cmd);
+*/
         run_txcmdeof(xfer, cmd);
         /* FALLTHROUGH */
     case USB_ST_SETUP:
 tr_setup:
         cmd = STAILQ_FIRST(&sc->sc_cmd_pending);
         if (cmd == NULL) {
-            RUN_DPRINTF(sc, RUN_DEBUG_CMD,
-                "%s: empty pending queue sc %p\n", __func__, sc);
+            /*RUN_DPRINTF(sc, RUN_DEBUG_CMD,
+                "%s: empty pending queue sc %p\n", __func__, sc);*/
             return;
         }   
         STAILQ_REMOVE_HEAD(&sc->sc_cmd_pending, next_cmd);
         STAILQ_INSERT_TAIL(&sc->sc_cmd_active, cmd, next_cmd);
         usbd_xfer_set_frame_data(xfer, 0, cmd->buf, cmd->buflen);
-        RUN_DPRINTF(sc, RUN_DEBUG_CMD,
-            "%s: submitting transfer %p; buf=%p, buflen=%d\n", __func__, cmd, cmd->buf, cmd->buflen);
+        /*RUN_DPRINTF(sc, RUN_DEBUG_CMD,
+            "%s: submitting transfer %p; buf=%p, buflen=%d\n", __func__, cmd, cmd->buf, cmd->buflen);*/
         usbd_transfer_submit(xfer);
         break;
     default:
@@ -1666,10 +1667,10 @@ run_txcmdeof(struct usb_xfer *xfer, struct run_tx_cmd *cmd)
 
 	RUN_LOCK_ASSERT(sc, MA_OWNED);
 
-    RUN_DPRINTF(sc, RUN_DEBUG_CMDDONE,
+    /*RUN_DPRINTF(sc, RUN_DEBUG_CMDDONE,
         "%s: called; data=%p; odata=%p\n",
         __func__, cmd, cmd->odata);
-
+*/
     /*
      * Non-response commands still need wakeup so the caller
      * knows it was submitted and completed OK; response commands should
