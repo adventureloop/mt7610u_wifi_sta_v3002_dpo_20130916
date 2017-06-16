@@ -349,6 +349,10 @@ static usb_callback_t	run_bulk_tx_callback5;
 static usb_callback_t   run_bulk_cmd_callback;
 //static void run_bulk_cmd_callback(struct usb_xfer *, usb_error_t );
 int run_cmd(struct run_softc *, const void *, int , void *, int );
+static struct otus_tx_cmd *_otus_get_txcmd(struct otus_softc *);
+static struct otus_tx_cmd *otus_get_txcmd(struct otus_softc *);
+static void otus_free_txcmd(struct otus_softc *, struct otus_tx_cmd *);
+
 
 static void	run_autoinst(void *, struct usb_device *,
 		    struct usb_attach_arg *);
