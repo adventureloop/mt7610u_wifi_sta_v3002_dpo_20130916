@@ -352,6 +352,7 @@ int run_cmd(struct run_softc *, const void *, int , void *, int );
 static struct run_tx_cmd *_run_get_txcmd(struct run_softc *);
 static struct run_tx_cmd *run_get_txcmd(struct run_softc *);
 static void run_free_txcmd(struct run_softc *, struct run_tx_cmd *);
+static void run_txcmdeof(struct usb_xfer *, struct run_tx_cmd *);
 
 static void	run_autoinst(void *, struct usb_device *,
 		    struct usb_attach_arg *);
