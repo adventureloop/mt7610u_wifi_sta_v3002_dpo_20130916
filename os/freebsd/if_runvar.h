@@ -95,6 +95,7 @@ struct run_tx_data {
 		     sizeof(struct rt2860_txwi)];
 	uint8_t			ridx;
 };
+
 STAILQ_HEAD(run_tx_data_head, run_tx_data);
 
 struct run_node {
@@ -262,6 +263,15 @@ struct run_softc {
 		uint8_t	pad[64];
 	}				sc_txtapu;
 #define sc_txtap	sc_txtapu.th
+
+	/* firmware thing */
+	int token;
+
+	STAILQ_HEAD(, otus_tx_cmd)  sc_cmd_active;
+	STAILQ_HEAD(, otus_tx_cmd)  sc_cmd_inactive;
+	STAILQ_HEAD(, otus_tx_cmd)  sc_cmd_pending;
+	STAILQ_HEAD(, otus_tx_cmd)  sc_cmd_waiting;
+
 };
 
 #define	RUN_LOCK(sc)		mtx_lock(&(sc)->sc_mtx)
