@@ -160,6 +160,16 @@ struct run_endpoint_queue {
 	uint32_t			tx_nfree;
 };
 
+/* Firmware commands */                     
+struct run_tx_cmd {                         
+    uint8_t         *buf;                   
+    uint16_t        buflen;                 
+    void            *odata;                 
+    uint16_t        odatalen;               
+    uint16_t        token;                  
+    STAILQ_ENTRY(run_tx_cmd)   next_cmd;    
+};                                          
+
 struct run_softc {
 	struct mtx			sc_mtx;
 	struct ieee80211com		sc_ic;
@@ -267,10 +277,10 @@ struct run_softc {
 	/* firmware thing */
 	int token;
 
-	STAILQ_HEAD(, otus_tx_cmd)  sc_cmd_active;
-	STAILQ_HEAD(, otus_tx_cmd)  sc_cmd_inactive;
-	STAILQ_HEAD(, otus_tx_cmd)  sc_cmd_pending;
-	STAILQ_HEAD(, otus_tx_cmd)  sc_cmd_waiting;
+	STAILQ_HEAD(, run_tx_cmd)  sc_cmd_active;
+	STAILQ_HEAD(, run_tx_cmd)  sc_cmd_inactive;
+	STAILQ_HEAD(, run_tx_cmd)  sc_cmd_pending;
+	STAILQ_HEAD(, run_tx_cmd)  sc_cmd_waiting;
 
 };
 
