@@ -1275,7 +1275,7 @@ run_load_mt_microcode(struct run_softc *sc)
 	int ntries, error;
 
 	struct mtfw_hdr fw_hdr;
-	struct run_tx_cmd *cmd;
+	//struct run_tx_cmd *cmd;
 	device_printf(sc->sc_dev, "loading MT microcode\n");
 
 	RUN_UNLOCK(sc);

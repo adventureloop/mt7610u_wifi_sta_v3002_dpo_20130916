@@ -1679,4 +1679,12 @@ struct run_tx_cmd {
     STAILQ_ENTRY(run_tx_cmd)   next_cmd;
 };                                       
 
+/* Firmware command/reply header. */
+struct ar_cmd_hdr {
+	uint8_t     len;
+	uint8_t     code;
+    uint16_t    token;  /* Driver private data. */
+} __packed;
+
+
 #endif	/* _IF_RUNREG_H_ */
