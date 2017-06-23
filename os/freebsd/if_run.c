@@ -1454,7 +1454,6 @@ run_load_mt_microcode(struct run_softc *sc)
 			run_delay(sc, 5);
 		} while(write_size > 0);
 
-
 		cur_len = 0x0;
 
 		do {
@@ -1489,6 +1488,11 @@ run_load_mt_microcode(struct run_softc *sc)
 			run_write(sc, high, 0x236);
 
 			run_write_region_1(sc, RT2870_FW_BASE, base, write_size);
+
+//bulk transfer
+			error = run_cmd(sc, base, write_size, NULL, 0);
+			if (error) {
+			}
 
 			run_read(sc, TX_CPU_PORT_FROM_FCE_CPU_DESC_INDEX, &mac_value);
 			run_write(sc, TX_CPU_PORT_FROM_FCE_CPU_DESC_INDEX, mac_value+1);
