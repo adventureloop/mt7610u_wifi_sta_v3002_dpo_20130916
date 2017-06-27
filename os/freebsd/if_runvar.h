@@ -138,6 +138,7 @@ struct run_vap {
  * and 6 for TX (4 EDCAs + HCCA + Prio).
  * Update 03-14-2009:  some devices like the Planex GW-US300MiniS
  * seem to have only 4 TX bulk endpoints (Fukaumi Naoki).
+ * mt76 devices have an endpoint for firmware stuff
  */
 enum {
 	RUN_BULK_TX_BE,		/* = WME_AC_BE */
