@@ -1567,7 +1567,7 @@ run_cmd(struct run_softc *sc, const void *idata, int ilen,
     struct ar_cmd_hdr *hdr;
     int xferlen, error;
    
-   	device_printf(sc->sc_dev, "%s: entry", __func__);
+   	device_printf(sc->sc_dev, "%s: entry\n", __func__);
 	RUN_LOCK_ASSERT(sc, MA_OWNED);
     
     /* Always bulk-out a multiple of 4 bytes. */
