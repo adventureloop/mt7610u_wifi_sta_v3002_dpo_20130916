@@ -1445,11 +1445,11 @@ run_load_mt_microcode(struct run_softc *sc)
 			run_write(sc, high, 0x236);
 
 			cur_len += write_size;
-
+/*
 			device_printf(sc->sc_dev, "run write region start: %lld\n", time_second);
 			run_write_region_1(sc, RT2870_FW_BASE, base, write_size);
 			device_printf(sc->sc_dev, "run write region stop: %lld\n", time_second);
-
+*/
 //bulk transfer
 			error = run_cmd(sc, base, write_size, NULL, 0);
 			if (error) {
@@ -1494,9 +1494,9 @@ run_load_mt_microcode(struct run_softc *sc)
 
 			run_write(sc, low, 0x234);
 			run_write(sc, high, 0x236);
-
+/*
 			run_write_region_1(sc, RT2870_FW_BASE, base, write_size);
-
+*/
 //bulk transfer
 			error = run_cmd(sc, base, write_size, NULL, 0);
 			if (error) {
