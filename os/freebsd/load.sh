@@ -7,6 +7,11 @@ sudo kldload ./run_mt.ko
 
 
 echo "creating interface"
-sleep 2
+sleep 10
 
 sudo ifconfig wlan0 create wlandev run0 wlanmode monitor
+
+sleep 10
+echo "shutting down"
+sudo kldunload run_mtfw
+sudo kldunload run_mt
