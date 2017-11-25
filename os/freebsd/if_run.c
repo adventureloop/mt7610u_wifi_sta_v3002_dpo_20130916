@@ -765,6 +765,14 @@ run_attach(device_t self)
 		goto detach;
 	}
 
+	if((error = run_alloc_tx_cmd_list()) != 0) {
+		device_printf(self, "could not allocate cmd transfers, "
+		    "err=%s\n", usbd_errstr(error));
+		goto detach;
+
+	}
+
+
 	RUN_LOCK(sc);
 	device_printf(sc->sc_dev,
 		"trying to read Asic Ver from RT2860_ASIC_VER_ID %x\n", 
