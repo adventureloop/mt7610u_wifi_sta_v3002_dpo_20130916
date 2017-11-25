@@ -347,7 +347,6 @@ static usb_callback_t	run_bulk_tx_callback3;
 static usb_callback_t	run_bulk_tx_callback4;
 static usb_callback_t	run_bulk_tx_callback5;
 static usb_callback_t   run_bulk_cmd_callback;
-//static void run_bulk_cmd_callback(struct usb_xfer *, usb_error_t );
 int run_cmd(struct run_softc *, const void *, int , void *, int );
 static struct run_tx_cmd *_run_get_txcmd(struct run_softc *);
 static struct run_tx_cmd *run_get_txcmd(struct run_softc *);
@@ -764,14 +763,14 @@ run_attach(device_t self)
 		    "err=%s\n", usbd_errstr(error));
 		goto detach;
 	}
-/*
+
 	if((error = run_alloc_tx_cmd_list()) != 0) {
 		device_printf(self, "could not allocate cmd transfers, "
 		    "err=%s\n", usbd_errstr(error));
 		goto detach;
 
 	}
-*/
+
 
 	RUN_LOCK(sc);
 	device_printf(sc->sc_dev,
@@ -1723,6 +1722,44 @@ run_get_txcmd(struct run_softc *sc)
     }
     return (bf);
 }
+
+static int
+run_alloc_tx_cmd_list(struct run_softc *sc)
+{                                                                   
+    int error, i;
+
+    error = run_alloc_cmd_list(sc, sc->sc_cmd, RUN_CMD_LIST_COUNT,
+        RUN_MAX_TXCMDSZ);
+    if (error != 0)
+        return (error);
+
+    STAILQ_INIT(&sc->sc_cmd_active);
+    STAILQ_INIT(&sc->sc_cmd_inactive);
+    STAILQ_INIT(&sc->sc_cmd_pending);
+    STAILQ_INIT(&sc->sc_cmd_waiting);
+
+    for (i = 0; i < RUN_CMD_LIST_COUNT; i++)
+        STAILQ_INSERT_HEAD(&sc->sc_cmd_inactive, &sc->sc_cmd[i],
+            next_cmd);
+
+    return (0);
+}                                                                   
+
+static void           
+run_free_tx_cmd_list(struct run_softc *sc)     
+{                     
+                      
+    /*                
+     * XXX TODO: something needs to wake up any pending/sleeping                                        
+     * waiters!       
+     */               
+    STAILQ_INIT(&sc->sc_cmd_active);             
+    STAILQ_INIT(&sc->sc_cmd_inactive);           
+    STAILQ_INIT(&sc->sc_cmd_pending);            
+    STAILQ_INIT(&sc->sc_cmd_waiting);            
+                      
+    run_free_cmd_list(sc, sc->sc_cmd, RUN_CMD_LIST_COUNT);                                            
+}                     
 
 static int
 run_reset(struct run_softc *sc)
