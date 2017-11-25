@@ -347,12 +347,8 @@ static usb_callback_t	run_bulk_tx_callback3;
 static usb_callback_t	run_bulk_tx_callback4;
 static usb_callback_t	run_bulk_tx_callback5;
 static usb_callback_t   run_bulk_cmd_callback;
-int run_cmd(struct run_softc *, const void *, int , void *, int );
-static struct run_tx_cmd *_run_get_txcmd(struct run_softc *);
-static struct run_tx_cmd *run_get_txcmd(struct run_softc *);
-static void run_free_txcmd(struct run_softc *, struct run_tx_cmd *);
-static void run_txcmdeof(struct usb_xfer *, struct run_tx_cmd *);
 
+int run_send_cmd(struct run_softc *, const void *, int , void *, int );
 static void	run_autoinst(void *, struct usb_device *,
 		    struct usb_attach_arg *);
 static int	run_driver_loaded(struct module *, int, void *);
@@ -524,7 +520,7 @@ static const struct {
 	RT5592_DEF_BBP
 };
 
-/* 
+/*
  * Default values for BBP register R196 for RT5592.
  */
 static const uint8_t rt5592_bbp_r196[] = {
@@ -764,17 +760,9 @@ run_attach(device_t self)
 		goto detach;
 	}
 
-	if((error = run_alloc_tx_cmd_list()) != 0) {
-		device_printf(self, "could not allocate cmd transfers, "
-		    "err=%s\n", usbd_errstr(error));
-		goto detach;
-
-	}
-
-
 	RUN_LOCK(sc);
 	device_printf(sc->sc_dev,
-		"trying to read Asic Ver from RT2860_ASIC_VER_ID %x\n", 
+		"trying to read Asic Ver from RT2860_ASIC_VER_ID %x\n",
 		RT2860_ASIC_VER_ID);
 
 	/* wait for the chip to settle */
@@ -961,7 +949,7 @@ run_vap_create(struct ieee80211com *ic, const char name[IFNAMSIZ], int unit,
 	switch (opmode) {
 	case IEEE80211_M_STA:
 		/* enable s/w bmiss handling for sta mode */
-		flags |= IEEE80211_CLONE_NOBEACONS; 
+		flags |= IEEE80211_CLONE_NOBEACONS;
 		/* fall though */
 	case IEEE80211_M_IBSS:
 	case IEEE80211_M_MONITOR:
@@ -1173,7 +1161,7 @@ run_load_microcode(struct run_softc *sc)
 	uint64_t bytes;
 
 	device_printf(sc->sc_dev, "testing hardware rev for microcode load %x\n", sc->mac_ver);
-	//if (sc->mac_ver == 0x7150) {	
+	//if (sc->mac_ver == 0x7150) {
 	if (sc != NULL) {
 		return run_load_mt_microcode(sc);
 	}
@@ -1204,7 +1192,7 @@ run_load_microcode(struct run_softc *sc)
 	base = fw->data;
 	if ((sc->mac_ver) != 0x2860 &&
 	    (sc->mac_ver) != 0x2872 &&
-	    (sc->mac_ver) != 0x3070) { 
+	    (sc->mac_ver) != 0x3070) {
 		base += 4096;
 	}
 
@@ -1320,7 +1308,7 @@ run_load_mt_microcode(struct run_softc *sc)
 	device_printf(sc->sc_dev, "ilm length: %d\n", fw_hdr.ilm_len);
 	device_printf(sc->sc_dev, "dlm length: %d\n", fw_hdr.dlm_len);
 	device_printf(sc->sc_dev, "build time: %.16s\n", fw_hdr.build_time);
-	
+
 	fw_base = fw->data;
 	base = fw_base + 32;
 	/* write microcode image */
@@ -1338,7 +1326,7 @@ run_load_mt_microcode(struct run_softc *sc)
 #define TX_CPU_PORT_FROM_FCE_MAX_COUNT 0x09A4
 #define SEMAPHORE 0x07B0
 #define COM_REG0  0x0730
-#define USB_DMA_CFG 0x0238  
+#define USB_DMA_CFG 0x0238
 
 		uint32_t cur_len = 0;
 		uint32_t write_size = 0;
@@ -1349,7 +1337,7 @@ run_load_mt_microcode(struct run_softc *sc)
 
 		uint8_t semaphore_tries = 0;
 
-	
+
 		while (semaphore_tries++ < 100) {
 			run_read(sc, SEMAPHORE, &mac_value);
 			if ((mac_value & 0x01) == 0)
@@ -1367,24 +1355,24 @@ run_load_mt_microcode(struct run_softc *sc)
 		/* Its a sektret */
 		run_write(sc, 0x1004, 0x2c);
 
-		/* 
+		/*
 		 * Vendor soup has a endianess correct struct for doing this, but there
 		 * is a comment which shows a raw value which might just work. Lets try
 		 * that first and then do things right if this ever works.
 		 * //USB_CFG_WRITE(ad, 0x00c00020);
 		 */
 		device_printf(sc->sc_dev, "writing usb dma cfg: \n");
-		/* enable Rx bulk aggregation (set timeout and limit) */           
-		uint32_t tmp = RT2860_USB_TX_EN | RT2860_USB_RX_EN | RT2860_USB_RX_AGG_EN | 
-			RT2860_USB_RX_AGG_TO(128) | RT2860_USB_RX_AGG_LMT(2);          
+		/* enable Rx bulk aggregation (set timeout and limit) */
+		uint32_t tmp = RT2860_USB_TX_EN | RT2860_USB_RX_EN | RT2860_USB_RX_AGG_EN |
+			RT2860_USB_RX_AGG_TO(128) | RT2860_USB_RX_AGG_LMT(2);
 		// TODO should be doing this ^^^^^
-	
+
 		run_read(sc, USB_DMA_CFG, &tmp);
 		device_printf(sc->sc_dev, "\treads as: %x\n", tmp);
 
 		tmp = 0x00c00020;
 		device_printf(sc->sc_dev, "\twriting as: %x\n", tmp);
-		run_write(sc, USB_DMA_CFG, tmp);                            
+		run_write(sc, USB_DMA_CFG, tmp);
 
 		run_read(sc, USB_DMA_CFG, &tmp);
 		device_printf(sc->sc_dev, "\treads as: %x\n", tmp);
@@ -1444,7 +1432,7 @@ run_load_mt_microcode(struct run_softc *sc)
 
 			cur_len += write_size;
 //bulk transfer
-			error = run_cmd(sc, base, write_size, NULL, 0);
+			error = run_send_cmd(sc, base, write_size, NULL, 0);
 			if (error) {
 			}
 
@@ -1487,7 +1475,7 @@ run_load_mt_microcode(struct run_softc *sc)
 			run_write(sc, low, 0x234);
 			run_write(sc, high, 0x236);
 //bulk transfer
-			error = run_cmd(sc, base, write_size, NULL, 0);
+			error = run_send_cmd(sc, base, write_size, NULL, 0);
 			if (error) {
 			}
 
@@ -1549,16 +1537,17 @@ fail:
 #define RUN_MAX_TXCMDSZ 14592
 
 int
-run_cmd(struct run_softc *sc, const void *idata, int ilen, 
+run_send_cmd(struct run_softc *sc, const void *idata, int ilen,
 	void *odata, int odatalen)
-{   
+{
+#if 0
     struct run_tx_cmd *cmd;
     struct ar_cmd_hdr *hdr;
     int xferlen, error;
-   
+
    	device_printf(sc->sc_dev, "%s: entry\n", __func__);
 	RUN_LOCK_ASSERT(sc, MA_OWNED);
-    
+
     /* Always bulk-out a multiple of 4 bytes. */
     xferlen = (sizeof (*hdr) + ilen + 3) & ~3;
     if (xferlen > RUN_MAX_TXCMDSZ) {
@@ -1568,34 +1557,34 @@ run_cmd(struct run_softc *sc, const void *idata, int ilen,
             RUN_MAX_TXCMDSZ);
         return (EIO);
     }
-    
+
     cmd = run_get_txcmd(sc);
     if (cmd == NULL) {
         device_printf(sc->sc_dev, "%s: failed to get buf\n",
             __func__);
         return (EIO);
     }
-    
+
     hdr = (struct ar_cmd_hdr *)cmd->buf;
     hdr->len   = ilen;
     hdr->token = ++sc->token;   /* Don't care about endianness. */
     cmd->token = hdr->token;
     /* XXX TODO: check max cmd length? */
     memcpy((uint8_t *)&hdr[1], idata, ilen);
-   /* 
+   /*
     RUN_DPRINTF(sc, RUN_DEBUG_CMD,
         "%s: sending command len=%d token=%d\n",
         __func__, ilen, hdr->token);
-   */ 
+   */
     cmd->odata = odata;
     cmd->odatalen = odatalen;
     cmd->buflen = xferlen;
-    
-    /* Queue the command to the endpoint */ 
+
+    /* Queue the command to the endpoint */
     STAILQ_INSERT_TAIL(&sc->sc_cmd_pending, cmd, next_cmd);
     usbd_transfer_start(sc->sc_xfer[RUN_BULK_CMD]);
-    
-    /* Sleep on the command; wait for it to complete */ 
+
+    /* Sleep on the command; wait for it to complete */
     error = msleep(cmd, &sc->sc_mtx, PCATCH, "runcmd", hz);
 
     /*
@@ -1609,157 +1598,17 @@ run_cmd(struct run_softc *sc, const void *idata, int ilen,
         device_printf(sc->sc_dev,
             "%s: timeout waiting for command reply\n",
             __func__);
-    }       
+    }
     return error;
+#endif
+	return 0;
 }
 
 static void
 run_bulk_cmd_callback(struct usb_xfer *xfer, usb_error_t error)
 {
-    struct run_softc *sc = usbd_xfer_softc(xfer);
-    struct run_tx_cmd *cmd;
-    
-	RUN_LOCK_ASSERT(sc, MA_OWNED);
-    
-    switch (USB_GET_STATE(xfer)) {
-    case USB_ST_TRANSFERRED:
-        cmd = STAILQ_FIRST(&sc->sc_cmd_active);
-        if (cmd == NULL)
-            goto tr_setup;
-/*
-        RUN_DPRINTF(sc, RUN_DEBUG_CMDDONE,
-            "%s: transfer done %p\n", __func__, cmd);
-        STAILQ_REMOVE_HEAD(&sc->sc_cmd_active, next_cmd);
-*/
-        run_txcmdeof(xfer, cmd);
-        /* FALLTHROUGH */
-    case USB_ST_SETUP:
-tr_setup:
-        cmd = STAILQ_FIRST(&sc->sc_cmd_pending);
-        if (cmd == NULL) {
-            /*RUN_DPRINTF(sc, RUN_DEBUG_CMD,
-                "%s: empty pending queue sc %p\n", __func__, sc);*/
-            return;
-        }   
-        STAILQ_REMOVE_HEAD(&sc->sc_cmd_pending, next_cmd);
-        STAILQ_INSERT_TAIL(&sc->sc_cmd_active, cmd, next_cmd);
-        usbd_xfer_set_frame_data(xfer, 0, cmd->buf, cmd->buflen);
-        /*RUN_DPRINTF(sc, RUN_DEBUG_CMD,
-            "%s: submitting transfer %p; buf=%p, buflen=%d\n", __func__, cmd, cmd->buf, cmd->buflen);*/
-        usbd_transfer_submit(xfer);
-        break;
-    default:
-        cmd = STAILQ_FIRST(&sc->sc_cmd_active);
-        if (cmd != NULL) {
-            STAILQ_REMOVE_HEAD(&sc->sc_cmd_active, next_cmd);
-            run_txcmdeof(xfer, cmd);
-        }   
-        
-        if (error != USB_ERR_CANCELLED) {
-            usbd_xfer_set_stall(xfer);
-            goto tr_setup;
-        }   
-        break;
-    }   
+	//heh copy one of the others
 }
-
-static void
-run_txcmdeof(struct usb_xfer *xfer, struct run_tx_cmd *cmd)
-{
-    struct run_softc *sc = usbd_xfer_softc(xfer);
-
-	RUN_LOCK_ASSERT(sc, MA_OWNED);
-
-    /*RUN_DPRINTF(sc, RUN_DEBUG_CMDDONE,
-        "%s: called; data=%p; odata=%p\n",
-        __func__, cmd, cmd->odata);
-*/
-    /*
-     * Non-response commands still need wakeup so the caller
-     * knows it was submitted and completed OK; response commands should
-     * wait until they're ACKed by the firmware with a response.
-     */
-    if (cmd->odata) {
-        STAILQ_INSERT_TAIL(&sc->sc_cmd_waiting, cmd, next_cmd);
-    } else {
-        wakeup(cmd);
-        run_free_txcmd(sc, cmd);
-    }
-}
-
-static void                                                    
-run_free_txcmd(struct run_softc *sc, struct run_tx_cmd *bf) 
-{                                                              
-                                                               
-	RUN_LOCK_ASSERT(sc, MA_OWNED);
-    STAILQ_INSERT_TAIL(&sc->sc_cmd_inactive, bf, next_cmd);    
-}                                                              
-
-static struct run_tx_cmd *
-_run_get_txcmd(struct run_softc *sc)
-{   
-    struct run_tx_cmd *bf;
-    
-    bf = STAILQ_FIRST(&sc->sc_cmd_inactive);
-    if (bf != NULL)
-        STAILQ_REMOVE_HEAD(&sc->sc_cmd_inactive, next_cmd);
-    else
-        bf = NULL;
-    return (bf);
-}
-
-static struct run_tx_cmd *
-run_get_txcmd(struct run_softc *sc)
-{
-    struct run_tx_cmd *bf;
-
-	RUN_LOCK_ASSERT(sc, MA_OWNED);
-
-    bf = _run_get_txcmd(sc);
-    if (bf == NULL) {
-        device_printf(sc->sc_dev, "%s: no tx cmd buffers\n",
-            __func__);
-    }
-    return (bf);
-}
-
-static int
-run_alloc_tx_cmd_list(struct run_softc *sc)
-{                                                                   
-    int error, i;
-
-    error = run_alloc_cmd_list(sc, sc->sc_cmd, RUN_CMD_LIST_COUNT,
-        RUN_MAX_TXCMDSZ);
-    if (error != 0)
-        return (error);
-
-    STAILQ_INIT(&sc->sc_cmd_active);
-    STAILQ_INIT(&sc->sc_cmd_inactive);
-    STAILQ_INIT(&sc->sc_cmd_pending);
-    STAILQ_INIT(&sc->sc_cmd_waiting);
-
-    for (i = 0; i < RUN_CMD_LIST_COUNT; i++)
-        STAILQ_INSERT_HEAD(&sc->sc_cmd_inactive, &sc->sc_cmd[i],
-            next_cmd);
-
-    return (0);
-}                                                                   
-
-static void           
-run_free_tx_cmd_list(struct run_softc *sc)     
-{                     
-                      
-    /*                
-     * XXX TODO: something needs to wake up any pending/sleeping                                        
-     * waiters!       
-     */               
-    STAILQ_INIT(&sc->sc_cmd_active);             
-    STAILQ_INIT(&sc->sc_cmd_inactive);           
-    STAILQ_INIT(&sc->sc_cmd_pending);            
-    STAILQ_INIT(&sc->sc_cmd_waiting);            
-                      
-    run_free_cmd_list(sc, sc->sc_cmd, RUN_CMD_LIST_COUNT);                                            
-}                     
 
 static int
 run_reset(struct run_softc *sc)
@@ -3519,7 +3368,7 @@ tr_setup:
 			 * save some data copying. This works because
 			 * there is only one cluster.
 			 */
-			usbd_xfer_set_frame_data(xfer, 0, 
+			usbd_xfer_set_frame_data(xfer, 0,
 			    mtod(sc->rx_m, caddr_t), RUN_MAX_RXSZ);
 			usbd_xfer_set_frames(xfer, 1);
 		}
@@ -3674,7 +3523,7 @@ tr_setup:
 		vap = data->ni->ni_vap;
 		if (ieee80211_radiotap_active_vap(vap)) {
 			struct run_tx_radiotap_header *tap = &sc->sc_txtap;
-			struct rt2860_txwi *txwi = 
+			struct rt2860_txwi *txwi =
 			    (struct rt2860_txwi *)(&data->desc + sizeof(struct rt2870_txd));
 			tap->wt_flags = 0;
 			tap->wt_rate = rt2860_rates[data->ridx].rate;
@@ -4033,7 +3882,7 @@ run_tx_mgt(struct run_softc *sc, struct mbuf *m, struct ieee80211_node *ni)
 	else if (!IEEE80211_IS_MULTICAST(wh->i_addr1)) {
 		xflags |= RT2860_TX_ACK;
 
-		dur = ieee80211_ack_duration(ic->ic_rt, rt2860_rates[ridx].rate, 
+		dur = ieee80211_ack_duration(ic->ic_rt, rt2860_rates[ridx].rate,
 		    ic->ic_flags & IEEE80211_F_SHPREAMBLE);
 		USETW(wh->i_dur, dur);
 	}
@@ -4243,7 +4092,7 @@ run_raw_xmit(struct ieee80211_node *ni, struct mbuf *m,
 {
 	struct run_softc *sc = ni->ni_ic->ic_softc;
 	int error = 0;
- 
+
 	RUN_LOCK(sc);
 
 	/* prevent management frames from being sent if we're not ready */
@@ -4539,7 +4388,7 @@ run_select_chan_group(struct run_softc *sc, int group)
 			    (sc->mac_ver == 0x3593) ? 0x82 : 0xf2);
 		if (sc->ext_5ghz_lna)
 			run_bbp_write(sc, 75, 0x46);
-		else 
+		else
 			run_bbp_write(sc, 75, 0x50);
 	}
 
@@ -4957,7 +4806,7 @@ run_rt3593_set_chan(struct run_softc *sc, u_int chan)
 
 	run_rt3070_rf_write(sc, 31, (chan <= 14) ? 0xa0 : 0x80);
 
-	h20mhz = (sc->rf24_20mhz & 0x20) >> 5; 
+	h20mhz = (sc->rf24_20mhz & 0x20) >> 5;
 	run_rt3070_rf_read(sc, 30, &rf);
 	rf = (rf & ~0x06) | (h20mhz << 1) | (h20mhz << 2);
 	run_rt3070_rf_write(sc, 30, rf);
@@ -4984,7 +4833,7 @@ run_rt3593_set_chan(struct run_softc *sc, u_int chan)
 	else
 		rf |= 0x40;
 	run_rt3070_rf_write(sc, 6, rf);
-		
+
 	run_rt3070_rf_read(sc, 30, &rf);
 	rf = (rf & ~0x18) | 0x10;
 	run_rt3070_rf_write(sc, 30, rf);
@@ -5229,7 +5078,7 @@ run_rt5592_set_chan(struct run_softc *sc, u_int chan)
 
 		run_rt3070_rf_write(sc, 55, 0x43);
 
-		/* 
+		/*
 		 * RF R49/R50 Tx power ALC code.
 		 * G-band bit<7:6>=1:0, bit<5:0> range from 0x0 ~ 0x27.
 		 */
@@ -5249,7 +5098,7 @@ run_rt5592_set_chan(struct run_softc *sc, u_int chan)
 			}
 		}
 
-		/* 
+		/*
 		 * RF R49/R50 Tx power ALC code.
 		 * A-band bit<7:6>=1:1, bit<5:0> range from 0x0 ~ 0x2b.
 		 */
@@ -5931,7 +5780,7 @@ run_bbp_init(struct run_softc *sc)
 		run_bbp_write(sc, 86, 0x46);
 		run_bbp_write(sc, 137, 0x0f);
 	}
-		
+
 	/* fix BBP84 for RT2860E */
 	if (sc->mac_ver == 0x2860 && sc->mac_rev != 0x0101)
 		run_bbp_write(sc, 84, 0x19);
@@ -5975,7 +5824,7 @@ run_rt3070_rf_init(struct run_softc *sc)
 	}
 
 	if (sc->mac_ver == 0x3070 && sc->mac_rev < 0x0201) {
-		/* 
+		/*
 		 * Change voltage from 1.2V to 1.35V for RT3070.
 		 * The DAC issue (RT3070_LDO_CFG0) has been fixed
 		 * in RT3070(F).
@@ -6832,7 +6681,7 @@ run_stop(void *arg)
 static void
 run_delay(struct run_softc *sc, u_int ms)
 {
-	usb_pause_mtx(mtx_owned(&sc->sc_mtx) ? 
+	usb_pause_mtx(mtx_owned(&sc->sc_mtx) ?
 	    &sc->sc_mtx : NULL, USB_MS_TO_TICKS(ms));
 }
 
