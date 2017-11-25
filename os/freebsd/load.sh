@@ -1,10 +1,15 @@
-#!/bin/sh
+#!/bin/zsh
+
+echo "building kernel modules"
+
+pushd run_mtfw
+make 
+popd
 
 echo "loading kernel modules"
 
 sudo kldload ./run_mtfw/run_mtfw.ko
 sudo kldload ./run_mt.ko
-
 
 echo "creating interface"
 sleep 10
