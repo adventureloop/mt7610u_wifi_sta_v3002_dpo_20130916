@@ -1568,6 +1568,9 @@ run_send_cmd(struct run_softc *sc, uint8_t *data, uint16_t len)
 
     /* Queue the command to the endpoint */
     usbd_transfer_start(sc->sc_xfer[RUN_BULK_CMD]);
+	
+	if (sc->sc_xfer[RUN_BULK_CMD] == NULL)
+		device_printf(sc->sc_dev, "%s: xfer is NULL", __func__);
 
 	device_printf(sc->sc_dev, "%s: submitted usb transfer %p\n", __func__, sc->sc_xfer[RUN_BULK_CMD]);
     /* Sleep on the command; wait for it to complete */
