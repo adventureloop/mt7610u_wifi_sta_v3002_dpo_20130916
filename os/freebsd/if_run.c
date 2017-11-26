@@ -1343,7 +1343,8 @@ run_load_mt_microcode(struct run_softc *sc)
 
 		uint8_t semaphore_tries = 0;
 
-		uint8_t transfer[UPLOAD_FW_UNIT];
+		//uint8_t transfer[UPLOAD_FW_UNIT];
+		uint8_t transfer[16000];
 
 		while (semaphore_tries++ < 100) {
 			run_read(sc, SEMAPHORE, &mac_value);
