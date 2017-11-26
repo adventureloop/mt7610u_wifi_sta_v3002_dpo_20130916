@@ -1599,7 +1599,7 @@ run_bulk_cmd_callback(struct usb_xfer *xfer, usb_error_t error)
 	case USB_ST_TRANSFERRED:
 
 		DPRINTFN(15, "cmd done, actlen=%d\n", xferlen);
-
+		wakeup(sc->sc_fwcmd);
 		/* FALLTHROUGH */
 	case USB_ST_SETUP:
 tr_setup:
