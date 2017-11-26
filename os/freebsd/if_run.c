@@ -1439,6 +1439,8 @@ run_load_mt_microcode(struct run_softc *sc)
 
 			cur_len += write_size;
 //bulk transfer
+			device_printf(sc->sc_dev, "transfer %p, base %p, write size %d\n",
+				transfer, base, write_size);
 			memcpy(transfer, base, write_size);
 			error = run_send_cmd(sc, transfer, write_size);
 			if (error) {
