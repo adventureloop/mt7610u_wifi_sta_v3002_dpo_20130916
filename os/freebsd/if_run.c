@@ -670,8 +670,6 @@ static const struct usb_config run_config[RUN_N_XFER] = {
     }
 };
 
-
-
 #if 0
 static void
 run_autoinst(void *arg, struct usb_device *udev,
@@ -1546,13 +1544,15 @@ int
 run_send_cmd(struct run_softc *sc, uint8_t *data, uint16_t len)
 {
     struct run_tx_cmd *cmd = sc->sc_fwcmd;
-    struct ar_cmd_hdr *hdr;
-    int xferlen, error;
+    //struct ar_cmd_hdr *hdr;
+    //int xferlen, error;
+	int error;
 
    	device_printf(sc->sc_dev, "%s: entry\n", __func__);
 	RUN_LOCK_ASSERT(sc, MA_OWNED);
 
     /* Always bulk-out a multiple of 4 bytes. */
+#if 0
     xferlen = (sizeof (*hdr) + len + 3) & ~3;
     if (xferlen > RUN_MAX_TXCMDSZ) {
         device_printf(sc->sc_dev, "%s: command size (%d) > %d\n",
@@ -1561,15 +1561,15 @@ run_send_cmd(struct run_softc *sc, uint8_t *data, uint16_t len)
             RUN_MAX_TXCMDSZ);
         return (EIO);
     }
-
-    cmd->data = (uint8_t *)data;
+#endif
+    cmd->data = data;
     cmd->datalen = len;
-    cmd->buflen = xferlen;
+    //cmd->buflen = xferlen;
 
     /* Queue the command to the endpoint */
     usbd_transfer_start(sc->sc_xfer[RUN_BULK_CMD]);
 
-	device_printf(sc->sc_dev, "%s: submitted usb transfer", __func__);
+	device_printf(sc->sc_dev, "%s: submitted usb transfer %p\n", __func__, sc->sc_xfer[RUN_BULK_CMD]);
     /* Sleep on the command; wait for it to complete */
     error = msleep(cmd, &sc->sc_mtx, PCATCH, "runcmd", hz);
 
@@ -1603,8 +1603,7 @@ run_bulk_cmd_callback(struct usb_xfer *xfer, usb_error_t error)
 		device_printf(sc->sc_dev, "%s: transfer done", __func__);
 		DPRINTFN(15, "cmd done, actlen=%d\n", xferlen);
 		wakeup(sc->sc_fwcmd);
-		return;
-		/* FALLTHROUGH */
+		break;
 	case USB_ST_SETUP:
 tr_setup:
 		device_printf(sc->sc_dev, "%s: setup", __func__);
