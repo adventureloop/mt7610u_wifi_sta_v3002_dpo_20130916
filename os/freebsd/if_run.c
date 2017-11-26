@@ -1580,8 +1580,8 @@ run_send_cmd(struct run_softc *sc, uint8_t *data, uint16_t len)
      */
     if (error != 0) {
         device_printf(sc->sc_dev,
-            "%s: timeout waiting for command reply\n",
-            __func__);
+            "%s: timeout waiting for command reply, error %d\n",
+            __func__, error);
     }
     return error;
 }
