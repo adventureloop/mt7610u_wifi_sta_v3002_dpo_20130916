@@ -163,12 +163,9 @@ struct run_endpoint_queue {
 
 /* Firmware commands */                     
 struct run_tx_cmd {                         
-    uint8_t         *buf;                   
-    uint16_t        buflen;                 
-    void            *odata;                 
-    uint16_t        odatalen;               
-    uint16_t        token;                  
-    STAILQ_ENTRY(run_tx_cmd)   next_cmd;    
+    uint8_t         *data;
+    uint16_t        datalen;
+    uint16_t        buflen;
 };                                          
 
 struct run_softc {
@@ -277,12 +274,7 @@ struct run_softc {
 
 	/* firmware thing */
 	int token;
-
-	STAILQ_HEAD(, run_tx_cmd)  sc_cmd_active;
-	STAILQ_HEAD(, run_tx_cmd)  sc_cmd_inactive;
-	STAILQ_HEAD(, run_tx_cmd)  sc_cmd_pending;
-	STAILQ_HEAD(, run_tx_cmd)  sc_cmd_waiting;
-
+	struct run_tx_cmd *sc_fwcmd;
 };
 
 #define	RUN_LOCK(sc)		mtx_lock(&(sc)->sc_mtx)

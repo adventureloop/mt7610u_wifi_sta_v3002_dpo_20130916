@@ -348,7 +348,7 @@ static usb_callback_t	run_bulk_tx_callback4;
 static usb_callback_t	run_bulk_tx_callback5;
 static usb_callback_t   run_bulk_cmd_callback;
 
-int run_send_cmd(struct run_softc *, const void *, int , void *, int );
+int run_send_cmd(struct run_softc *, uint8_t *, uint16_t);
 static void	run_autoinst(void *, struct usb_device *,
 		    struct usb_attach_arg *);
 static int	run_driver_loaded(struct module *, int, void *);
@@ -757,6 +757,12 @@ run_attach(device_t self)
 	if (error) {
 		device_printf(self, "could not allocate USB transfers, "
 		    "err=%s\n", usbd_errstr(error));
+		goto detach;
+	}
+
+	sc->sc_fwcmd = malloc(sizeof (struct run_node), M_DEVBUF, M_NOWAIT | M_ZERO);
+	if (sc->sc_fwcmd == NULL) {
+		device_printf(self, "could not fw transfer buffer\n");
 		goto detach;
 	}
 
@@ -1337,6 +1343,7 @@ run_load_mt_microcode(struct run_softc *sc)
 
 		uint8_t semaphore_tries = 0;
 
+		uint8_t transfer[UPLOAD_FW_UNIT];
 
 		while (semaphore_tries++ < 100) {
 			run_read(sc, SEMAPHORE, &mac_value);
@@ -1432,7 +1439,8 @@ run_load_mt_microcode(struct run_softc *sc)
 
 			cur_len += write_size;
 //bulk transfer
-			error = run_send_cmd(sc, base, write_size, NULL, 0);
+			memcpy(transfer, base, write_size);
+			error = run_send_cmd(sc, transfer, write_size);
 			if (error) {
 			}
 
@@ -1475,7 +1483,8 @@ run_load_mt_microcode(struct run_softc *sc)
 			run_write(sc, low, 0x234);
 			run_write(sc, high, 0x236);
 //bulk transfer
-			error = run_send_cmd(sc, base, write_size, NULL, 0);
+			memcpy(transfer, base, write_size);
+			error = run_send_cmd(sc, transfer, write_size);
 			if (error) {
 			}
 
@@ -1537,11 +1546,9 @@ fail:
 #define RUN_MAX_TXCMDSZ 14592
 
 int
-run_send_cmd(struct run_softc *sc, const void *idata, int ilen,
-	void *odata, int odatalen)
+run_send_cmd(struct run_softc *sc, uint8_t *data, uint16_t len)
 {
-#if 0
-    struct run_tx_cmd *cmd;
+    struct run_tx_cmd *cmd = sc->sc_fwcmd;
     struct ar_cmd_hdr *hdr;
     int xferlen, error;
 
@@ -1549,7 +1556,7 @@ run_send_cmd(struct run_softc *sc, const void *idata, int ilen,
 	RUN_LOCK_ASSERT(sc, MA_OWNED);
 
     /* Always bulk-out a multiple of 4 bytes. */
-    xferlen = (sizeof (*hdr) + ilen + 3) & ~3;
+    xferlen = (sizeof (*hdr) + len + 3) & ~3;
     if (xferlen > RUN_MAX_TXCMDSZ) {
         device_printf(sc->sc_dev, "%s: command size (%d) > %d\n",
             __func__,
@@ -1558,30 +1565,11 @@ run_send_cmd(struct run_softc *sc, const void *idata, int ilen,
         return (EIO);
     }
 
-    cmd = run_get_txcmd(sc);
-    if (cmd == NULL) {
-        device_printf(sc->sc_dev, "%s: failed to get buf\n",
-            __func__);
-        return (EIO);
-    }
-
-    hdr = (struct ar_cmd_hdr *)cmd->buf;
-    hdr->len   = ilen;
-    hdr->token = ++sc->token;   /* Don't care about endianness. */
-    cmd->token = hdr->token;
-    /* XXX TODO: check max cmd length? */
-    memcpy((uint8_t *)&hdr[1], idata, ilen);
-   /*
-    RUN_DPRINTF(sc, RUN_DEBUG_CMD,
-        "%s: sending command len=%d token=%d\n",
-        __func__, ilen, hdr->token);
-   */
-    cmd->odata = odata;
-    cmd->odatalen = odatalen;
+    cmd->data = (uint8_t *)data;
+    cmd->datalen = len;
     cmd->buflen = xferlen;
 
     /* Queue the command to the endpoint */
-    STAILQ_INSERT_TAIL(&sc->sc_cmd_pending, cmd, next_cmd);
     usbd_transfer_start(sc->sc_xfer[RUN_BULK_CMD]);
 
     /* Sleep on the command; wait for it to complete */
@@ -1600,14 +1588,47 @@ run_send_cmd(struct run_softc *sc, const void *idata, int ilen,
             __func__);
     }
     return error;
-#endif
-	return 0;
 }
 
 static void
 run_bulk_cmd_callback(struct usb_xfer *xfer, usb_error_t error)
 {
-	//heh copy one of the others
+	struct run_softc *sc = usbd_xfer_softc(xfer);
+	struct ieee80211com *ic = &sc->sc_ic;
+	int xferlen;
+
+	usbd_xfer_status(xfer, &xferlen, NULL, NULL, NULL);
+
+	switch (USB_GET_STATE(xfer)) {
+	case USB_ST_TRANSFERRED:
+
+		DPRINTFN(15, "cmd done, actlen=%d\n", xferlen);
+
+		/* FALLTHROUGH */
+	case USB_ST_SETUP:
+tr_setup:
+		/*
+		 * Directly loading a mbuf cluster into DMA to
+		 * save some data copying. This works because
+		 * there is only one cluster.
+		 */
+		usbd_xfer_set_frame_data(xfer, 0,
+			sc->sc_fwcmd->data, sc->sc_fwcmd->datalen);
+		usbd_xfer_set_frames(xfer, 1);
+		usbd_transfer_submit(xfer);
+		break;
+
+	default:	/* Error */
+		if (error != USB_ERR_CANCELLED) {
+			/* try to clear stall first */
+			usbd_xfer_set_stall(xfer);
+			if (error == USB_ERR_TIMEOUT)
+				device_printf(sc->sc_dev, "device timeout\n");
+			counter_u64_add(ic->ic_ierrors, 1);
+			goto tr_setup;
+		}
+		break;
+	}
 }
 
 static int
