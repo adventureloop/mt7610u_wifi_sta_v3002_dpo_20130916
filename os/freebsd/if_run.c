@@ -84,6 +84,8 @@ __FBSDID("$FreeBSD: head/sys/dev/usb/wlan/if_run.c 301302 2016-06-04 07:18:39Z a
 #include "if_runreg.h"
 #include "if_runvar.h"
 
+#define RUN_MAX_TXCMDSZ 14592
+
 #ifdef	USB_DEBUG
 #define	RUN_DEBUG
 #endif
@@ -661,7 +663,7 @@ static const struct usb_config run_config[RUN_N_XFER] = {
 	.endpoint = UE_ADDR_ANY,
 	.direction = UE_DIR_OUT,
 	.ep_index = 8,
-	.bufsize = RUN_MAX_TXSZ,
+	.bufsize = RUN_MAX_TXCMDSZ,
 	.flags = {.pipe_bof = 1,.force_short_xfer = 1,.no_pipe_ok = 1,},
 	.callback = run_bulk_cmd_callback,
 	.timeout = 5000,	/* ms */
@@ -1539,7 +1541,6 @@ fail:
 	return (error);
 }
 
-#define RUN_MAX_TXCMDSZ 14592
 
 int
 run_send_cmd(struct run_softc *sc, uint8_t *data, uint16_t len)
