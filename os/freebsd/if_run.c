@@ -1343,9 +1343,6 @@ run_load_mt_microcode(struct run_softc *sc)
 
 		uint8_t semaphore_tries = 0;
 
-		//uint8_t transfer[UPLOAD_FW_UNIT];
-		uint8_t transfer[16000];
-
 		while (semaphore_tries++ < 100) {
 			run_read(sc, SEMAPHORE, &mac_value);
 			if ((mac_value & 0x01) == 0)
@@ -1440,10 +1437,7 @@ run_load_mt_microcode(struct run_softc *sc)
 
 			cur_len += write_size;
 //bulk transfer
-			device_printf(sc->sc_dev, "transfer %p, base %p, write size %d\n",
-				transfer, base, write_size);
-			memcpy(transfer, base, write_size);
-			error = run_send_cmd(sc, transfer, write_size);
+			error = run_send_cmd(sc, __DECONST(uint8_t *, base), write_size);
 			if (error) {
 			}
 
@@ -1486,8 +1480,7 @@ run_load_mt_microcode(struct run_softc *sc)
 			run_write(sc, low, 0x234);
 			run_write(sc, high, 0x236);
 //bulk transfer
-			memcpy(transfer, base, write_size);
-			error = run_send_cmd(sc, transfer, write_size);
+			error = run_send_cmd(sc, __DECONST(uint8_t *, base), write_size);
 			if (error) {
 			}
 
