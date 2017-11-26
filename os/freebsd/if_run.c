@@ -1597,9 +1597,10 @@ run_bulk_cmd_callback(struct usb_xfer *xfer, usb_error_t error)
 
 	switch (USB_GET_STATE(xfer)) {
 	case USB_ST_TRANSFERRED:
-
+		device_printf(sc->sc_dev, "%s: transfer done", __func__);
 		DPRINTFN(15, "cmd done, actlen=%d\n", xferlen);
 		wakeup(sc->sc_fwcmd);
+		return;
 		/* FALLTHROUGH */
 	case USB_ST_SETUP:
 tr_setup:
