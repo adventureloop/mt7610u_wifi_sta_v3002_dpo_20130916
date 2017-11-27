@@ -1575,7 +1575,9 @@ run_send_cmd(struct run_softc *sc, uint8_t *data, uint16_t len)
     usbd_transfer_start(sc->sc_xfer[RUN_BULK_TX_VI]);
 
     /* Sleep on the command; wait for it to complete */
-    error = msleep(cmd, &sc->sc_mtx, PCATCH, "runcmd", 5*hz);
+    //error = msleep(cmd, &sc->sc_mtx, PCATCH, "runcmd", 5*hz);
+    error = msleep(cmd, &sc->sc_mtx, 0, "runcmd", 5*hz);
+
 
     /*
      * At this point we don't own cmd any longer; it'll be
