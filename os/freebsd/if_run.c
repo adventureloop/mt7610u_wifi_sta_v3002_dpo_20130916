@@ -657,16 +657,6 @@ static const struct usb_config run_config[RUN_N_XFER] = {
 	.bufsize = RUN_MAX_RXSZ,
 	.flags = {.pipe_bof = 1,.short_xfer_ok = 1,},
 	.callback = run_bulk_rx_callback,
-    },
-    [RUN_BULK_CMD] = {
-	.type = UE_BULK,
-	.endpoint = UE_ADDR_ANY,
-	.direction = UE_DIR_OUT,
-	.ep_index = 7,
-	.bufsize = RUN_MAX_TXCMDSZ,
-	.flags = {.pipe_bof = 1,.force_short_xfer = 1,.no_pipe_ok = 1,},
-	.callback = run_bulk_cmd_callback,
-	.timeout = 5000,	/* ms */
     }
 };
 
