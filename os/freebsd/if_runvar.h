@@ -275,6 +275,7 @@ struct run_softc {
 	/* firmware thing */
 	int token;
 	struct run_tx_cmd *sc_fwcmd;
+	uint8_t sc_fwupload;
 };
 
 #define	RUN_LOCK(sc)		mtx_lock(&(sc)->sc_mtx)

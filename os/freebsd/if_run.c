@@ -1289,6 +1289,8 @@ run_load_mt_microcode(struct run_softc *sc)
 	//struct run_tx_cmd *cmd;
 	device_printf(sc->sc_dev, "loading MT microcode\n");
 
+	sc->sc_fwupload = 1;
+
 	RUN_UNLOCK(sc);
 	fw = firmware_get("run_mtfw");
 	RUN_LOCK(sc);
@@ -3623,11 +3625,11 @@ static void
 run_bulk_tx_callback2(struct usb_xfer *xfer, usb_error_t error)
 {
 	struct run_softc *sc = usbd_xfer_softc(xfer);
-	device_printf(sc->sc_dev, "%s: transfer done", __func__);
-	DPRINTFN(15, "cmd done, actlen=%d\n", xferlen);
-	wakeup(sc->sc_fwcmd);
-	
-	run_bulk_tx_callbackN(xfer, error, 2);
+
+	if (sc->sc_fwupload)
+		run_bulk_cmd_callback(xfer, error);
+	else 
+		run_bulk_tx_callbackN(xfer, error, 2);
 }
 
 static void
