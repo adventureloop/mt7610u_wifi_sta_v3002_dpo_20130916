@@ -761,8 +761,7 @@ run_attach(device_t self)
 	}
 	int i;
 	for (i = 0; i < RUN_N_XFER; i++) {
-		if (sc->sc_xfer[i] == NULL)
-			device_printf(sc->sc_dev, "%s: xfer %d is NULL\n", __func__, i);
+		device_printf(sc->sc_dev, "%s: xfer %d is %p\n", __func__, i, sc->sc_xfer[i]);
 	}
 
 	sc->sc_fwcmd = malloc(sizeof (struct run_node), M_DEVBUF, M_NOWAIT | M_ZERO);
