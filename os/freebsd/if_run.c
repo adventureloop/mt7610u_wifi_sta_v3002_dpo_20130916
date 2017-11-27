@@ -663,8 +663,7 @@ static const struct usb_config run_config[RUN_N_XFER] = {
 	.endpoint = UE_ADDR_ANY,
 	.direction = UE_DIR_OUT,
 	.ep_index = 8,
-	//.bufsize = RUN_MAX_TXCMDSZ,
-	.bufsize = RUN_MAX_RXSZ,
+	.bufsize = RUN_MAX_TXCMDSZ,
 	.flags = {.pipe_bof = 1,.force_short_xfer = 1,.no_pipe_ok = 1,},
 	.callback = run_bulk_cmd_callback,
 	.timeout = 5000,	/* ms */
@@ -752,6 +751,8 @@ run_attach(device_t self)
 	mbufq_init(&sc->sc_snd, ifqmaxlen);
 
 	iface_index = RT2860_IFACE_INDEX;
+
+	device_printf(sc->sc_dev, "%s: allocating %d transfers\n", __func__, RUN_N_XFER);
 
 	error = usbd_transfer_setup(uaa->device, &iface_index,
 	    sc->sc_xfer, run_config, RUN_N_XFER, sc, &sc->sc_mtx);
