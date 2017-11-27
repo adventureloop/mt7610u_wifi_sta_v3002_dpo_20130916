@@ -1603,18 +1603,18 @@ run_bulk_cmd_callback(struct usb_xfer *xfer, usb_error_t error)
 	struct ieee80211com *ic = &sc->sc_ic;
 	int xferlen;
 
-	device_printf(sc->sc_dev, "%s: entry", __func__);
+	device_printf(sc->sc_dev, "%s: entry\n", __func__);
 	usbd_xfer_status(xfer, &xferlen, NULL, NULL, NULL);
 
 	switch (USB_GET_STATE(xfer)) {
 	case USB_ST_TRANSFERRED:
-		device_printf(sc->sc_dev, "%s: transfer done", __func__);
+		device_printf(sc->sc_dev, "%s: transfer done\n", __func__);
 		DPRINTFN(15, "cmd done, actlen=%d\n", xferlen);
 		wakeup(sc->sc_fwcmd);
 		break;
 	case USB_ST_SETUP:
 tr_setup:
-		device_printf(sc->sc_dev, "%s: setup", __func__);
+		device_printf(sc->sc_dev, "%s: setup\n", __func__);
 		usbd_xfer_set_frame_data(xfer, 0,
 			sc->sc_fwcmd->data, sc->sc_fwcmd->datalen);
 		usbd_xfer_set_frames(xfer, 1);
