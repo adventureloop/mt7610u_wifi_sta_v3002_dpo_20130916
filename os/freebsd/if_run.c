@@ -1573,12 +1573,9 @@ run_send_cmd(struct run_softc *sc, uint8_t *data, uint16_t len)
     //cmd->buflen = xferlen;
 
     /* Queue the command to the endpoint */
-    usbd_transfer_start(sc->sc_xfer[RUN_BULK_CMD]);
-	
-	if (sc->sc_xfer[RUN_BULK_CMD] == NULL)
-		device_printf(sc->sc_dev, "%s: xfer is NULL\n", __func__);
+    //usbd_transfer_start(sc->sc_xfer[RUN_BULK_CMD]);
+    usbd_transfer_start(sc->sc_xfer[RUN_BULK_TX_VI]);
 
-	device_printf(sc->sc_dev, "%s: submitted usb transfer %p\n", __func__, sc->sc_xfer[RUN_BULK_CMD]);
     /* Sleep on the command; wait for it to complete */
     error = msleep(cmd, &sc->sc_mtx, PCATCH, "runcmd", hz);
 
@@ -3625,6 +3622,11 @@ run_bulk_tx_callback1(struct usb_xfer *xfer, usb_error_t error)
 static void
 run_bulk_tx_callback2(struct usb_xfer *xfer, usb_error_t error)
 {
+	struct run_softc *sc = usbd_xfer_softc(xfer);
+	device_printf(sc->sc_dev, "%s: transfer done", __func__);
+	DPRINTFN(15, "cmd done, actlen=%d\n", xferlen);
+	wakeup(sc->sc_fwcmd);
+	
 	run_bulk_tx_callbackN(xfer, error, 2);
 }
 
