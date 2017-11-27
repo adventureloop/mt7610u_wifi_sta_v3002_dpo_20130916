@@ -1399,7 +1399,7 @@ run_load_mt_microcode(struct run_softc *sc)
 		/* FCE skip_fs_en */
 		run_write(sc, FCE_SKIP_FS, 0x03);
 
-//		cur_len = 0x40;      // 64
+		cur_len = 0x40;      // 64
 
 		device_printf(sc->sc_dev, "writing ilm\n");
 		write_max = UPLOAD_FW_UNIT - HDR_LEN - USB_END_PADDING;
