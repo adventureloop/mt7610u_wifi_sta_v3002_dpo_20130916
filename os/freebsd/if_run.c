@@ -1575,7 +1575,7 @@ run_send_cmd(struct run_softc *sc, uint8_t *data, uint16_t len)
     usbd_transfer_start(sc->sc_xfer[RUN_BULK_TX_VI]);
 
     /* Sleep on the command; wait for it to complete */
-    error = msleep(cmd, &sc->sc_mtx, PCATCH, "runcmd", hz);
+    error = msleep(cmd, &sc->sc_mtx, PCATCH, "runcmd", 5*hz);
 
     /*
      * At this point we don't own cmd any longer; it'll be
@@ -1617,6 +1617,7 @@ tr_setup:
 		break;
 
 	default:	/* Error */
+		device_printf(sc->sc_dev, "%s: default (error)\n", __func__);
 		if (error != USB_ERR_CANCELLED) {
 			/* try to clear stall first */
 			usbd_xfer_set_stall(xfer);
