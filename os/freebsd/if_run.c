@@ -1447,6 +1447,9 @@ run_load_mt_microcode(struct run_softc *sc)
 //bulk transfer
 			error = run_send_cmd(sc, __DECONST(uint8_t *, base), write_size);
 			if (error) {
+				device_printf(sc->sc_dev, 
+					"error writing firmware ilm section to device %d\n", error);
+				goto fail;
 			}
 
 			run_read(sc, TX_CPU_PORT_FROM_FCE_CPU_DESC_INDEX, &mac_value);
@@ -1490,6 +1493,9 @@ run_load_mt_microcode(struct run_softc *sc)
 //bulk transfer
 			error = run_send_cmd(sc, __DECONST(uint8_t *, base), write_size);
 			if (error) {
+				device_printf(sc->sc_dev, 
+					"error writing firmware dlm section to device %d\n", error);
+				goto fail;
 			}
 
 			run_read(sc, TX_CPU_PORT_FROM_FCE_CPU_DESC_INDEX, &mac_value);
@@ -1603,7 +1609,6 @@ run_bulk_cmd_callback(struct usb_xfer *xfer, usb_error_t error)
 	struct ieee80211com *ic = &sc->sc_ic;
 	int xferlen;
 
-	device_printf(sc->sc_dev, "%s: entry\n", __func__);
 	usbd_xfer_status(xfer, &xferlen, NULL, NULL, NULL);
 
 	switch (USB_GET_STATE(xfer)) {
