@@ -1277,7 +1277,6 @@ run_load_mt_microcode(struct run_softc *sc)
 	int ntries, error;
 
 	struct mtfw_hdr fw_hdr;
-	//struct run_tx_cmd *cmd;
 	device_printf(sc->sc_dev, "loading MT microcode\n");
 
 	sc->sc_fwupload = 1;
@@ -1313,7 +1312,7 @@ run_load_mt_microcode(struct run_softc *sc)
 	device_printf(sc->sc_dev, "build time: %.16s\n", fw_hdr.build_time);
 
 	fw_base = fw->data;
-	base = fw_base + 32;
+	base = fw_base + 32 + 64;
 
 #define UPLOAD_FW_UNIT  14592
 #define USB_END_PADDING 4
@@ -1442,6 +1441,9 @@ run_load_mt_microcode(struct run_softc *sc)
 			*xfer_hdr |= 0x40000000 | 0x10000000 | htole16(write_size);
 
 			memcpy(data + 4, __DECONST(uint8_t *, base), write_size);
+			bzero(data + 4 + write_size, 4);
+
+			printf("ilm chunk hdr :\n\t%D\n\t%D\n", data, " ", data+16, " ");
 
 			low = (cur_len & 0xFFFF);
 			high = (cur_len & 0xFFFF0000) >> 16;
