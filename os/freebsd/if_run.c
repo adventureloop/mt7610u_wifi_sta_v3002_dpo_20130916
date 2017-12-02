@@ -1470,6 +1470,7 @@ run_load_mt_microcode(struct run_softc *sc)
 			run_write(sc, TX_CPU_PORT_FROM_FCE_CPU_DESC_INDEX, mac_value+1);
 
 			run_delay(sc, 5);
+			base += write_size;
 		} while(write_size > 0);
 
 		cur_len = 0x0;
