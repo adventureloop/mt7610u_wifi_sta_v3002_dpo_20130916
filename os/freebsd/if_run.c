@@ -1272,6 +1272,7 @@ run_load_mt_microcode(struct run_softc *sc)
 	const struct firmware *fw;
 	const uint8_t *base;
 	const uint8_t *fw_base;
+	uint8_t *data;
 	uint32_t tmp;
 	int ntries, error;
 
@@ -1286,14 +1287,12 @@ run_load_mt_microcode(struct run_softc *sc)
 	RUN_LOCK(sc);
 
 	if (fw == NULL) {
-		device_printf(sc->sc_dev,
-		    "failed loadfirmware of file %s\n", "run_mtfw");
+		device_printf(sc->sc_dev, "failed loadfirmware of file %s\n", "run_mtfw");
 		return ENOENT;
 	}
 
 	if (fw->datasize != 80288) {
-		device_printf(sc->sc_dev,
-		    "invalid firmware size (should be 80KB)\n");
+		device_printf(sc->sc_dev, "invalid firmware size (should be 80KB)\n");
 		error = EINVAL;
 		goto fail;
 	}
@@ -1315,11 +1314,21 @@ run_load_mt_microcode(struct run_softc *sc)
 
 	fw_base = fw->data;
 	base = fw_base + 32;
+
+#define UPLOAD_FW_UNIT  14592
+#define USB_END_PADDING 4
+#define HDR_LEN         32
+	data = malloc(UPLOAD_FW_UNIT, M_DEVBUF, M_NOWAIT | M_ZERO);
+	if (data == NULL) {
+		device_printf(sc->sc_dev, "unable to alloc tranfer memory\n");
+		error = ENOMEM;
+		goto fail;
+	}
+
 	/* write microcode image */
 	if (sc->sc_flags & RUN_FLAG_FWLOAD_NEEDED) {
 
 #define USB_END_PADDING 4
-#define UPLOAD_FW_UNIT  14592
 #define HDR_LEN         32
 
 #define FCE_PSE_CTRL 0x0800
@@ -1417,6 +1426,23 @@ run_load_mt_microcode(struct run_softc *sc)
 
 			device_printf(sc->sc_dev, "ilm write_size: %d\n", write_size);
 
+			//UINT32 cmd_seq:4;  
+			//UINT32 cmd_type:7; 
+			//UINT32 d_port:3;   
+			//UINT32 info_type:2;
+
+			uint32_t *xfer_hdr;
+			xfer_hdr = (uint32_t *)data;
+
+			//CPU_TX_PORT = 2 d_port = CPU_TX_PORT
+			//CMD_PACKET = 1 info_type
+			//iidd dttt tttt qqqq 0000 0000 0000 0000
+			//0101 0000 0000 0000 
+			//xfer_hdr |= BIT(30) | bit(
+			*xfer_hdr |= 0x40000000 | 0x10000000 | htole16(write_size);
+
+			memcpy(data + 4, __DECONST(uint8_t *, base), write_size);
+
 			low = (cur_len & 0xFFFF);
 			high = (cur_len & 0xFFFF0000) >> 16;
 
@@ -1435,7 +1461,7 @@ run_load_mt_microcode(struct run_softc *sc)
 
 			cur_len += write_size;
 //bulk transfer
-			error = run_send_cmd(sc, __DECONST(uint8_t *, base), write_size);
+			error = run_send_cmd(sc, data, write_size);
 			if (error) {
 				device_printf(sc->sc_dev, 
 					"error writing firmware ilm section to device %d\n", error);
@@ -1460,7 +1486,7 @@ run_load_mt_microcode(struct run_softc *sc)
 			if (write_size == 0) {
 				break;
 			}
-
+//value = ((cur_len + cap->dlm_offset) & 0xFFFF);
 			device_printf(sc->sc_dev, "dlm write_size: %d\n", write_size);
 
 			low = (cur_len & 0xFFFF);
@@ -1474,7 +1500,7 @@ run_load_mt_microcode(struct run_softc *sc)
 			//pad write_size out to % 4
 			while(write_size%4 != 0)
 				write_size++;
-
+//value = (((cur_len + cap->dlm_offset) & 0xFFFF0000) >> 16);   
 			low = ((write_size << 16) & 0xFFFF);
 			high = ((write_size << 16) & 0xFFFF0000) >> 16;
 
