@@ -751,10 +751,6 @@ run_attach(device_t self)
 		    "err=%s\n", usbd_errstr(error));
 		goto detach;
 	}
-	int i;
-	for (i = 0; i < RUN_N_XFER; i++) {
-		device_printf(sc->sc_dev, "%s: xfer %d is %p\n", __func__, i, sc->sc_xfer[i]);
-	}
 
 	sc->sc_fwcmd = malloc(sizeof (struct run_node), M_DEVBUF, M_NOWAIT | M_ZERO);
 	if (sc->sc_fwcmd == NULL) {
@@ -1443,7 +1439,7 @@ run_load_mt_microcode(struct run_softc *sc)
 			memcpy(data + 4, __DECONST(uint8_t *, base), write_size);
 			bzero(data + 4 + write_size, 4);
 
-			printf("ilm chunk hdr :\n\t%D\n\t%D\n", data, " ", data+16, " ");
+			printf("ilm chunk hdr:\n\t%D\n\t%D\n", data, " ", data+16, " ");
 
 			low = (cur_len & 0xFFFF);
 			high = (cur_len & 0xFFFF0000) >> 16;
