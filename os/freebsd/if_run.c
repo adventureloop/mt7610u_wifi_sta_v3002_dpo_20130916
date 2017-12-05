@@ -1336,6 +1336,8 @@ run_load_mt_microcode(struct run_softc *sc)
 #define COM_REG0  0x0730
 #define USB_DMA_CFG 0x0238
 
+#define MT_USB_DMA_CFG_UDMA_TX_WL_DROP	0x0100
+
 		uint32_t cur_len = 0;
 		uint32_t write_size = 0;
 		uint32_t write_max = 0;
@@ -1402,6 +1404,14 @@ run_load_mt_microcode(struct run_softc *sc)
 		run_write(sc, FCE_PDMA_GLOBAL_CONF, 0x44);
 		/* FCE skip_fs_en */
 		run_write(sc, FCE_SKIP_FS, 0x03);
+
+		tmp = run_read(sc, USB_DMA_CFG, &tmp);
+
+		tmp |= MT_USB_DMA_CFG_UDMA_TX_WL_DROP;
+		run_write(sc, USB_DMA_CFG, tmp);
+
+		tmp &= ~MT_USB_DMA_CFG_UDMA_TX_WL_DROP;
+		run_write(sc, USB_DMA_CFG, tmp);
 
 		cur_len = 0x40;      // 64
 
